@@ -3,3 +3,6 @@
 Deps:
 
  * xmltodict
+ * tensorflow
+ * numpy
+ * json

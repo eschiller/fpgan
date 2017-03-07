@@ -5,10 +5,10 @@ import jsonfpbuilder
 fp = np.zeros([8, 8, 5])
 
 #square fp in numpy
-fp = npfpbuilder.add_wall(fp, 4, 0, 30, 130, 130, 130)
-fp = npfpbuilder.add_wall(fp, 0, 4, 30, 30, 30, 130)
-fp = npfpbuilder.add_wall(fp, 7, 4, 130, 30, 130, 130)
-fp = npfpbuilder.add_wall(fp, 4, 7, 30, 30, 130, 30)
+fp = npfpbuilder.add_wall(4, 0, 30, 130, 130, 130, fp)
+fp = npfpbuilder.add_wall(0, 4, 30, 30, 30, 130, fp)
+fp = npfpbuilder.add_wall(7, 4, 130, 30, 130, 130, fp)
+fp = npfpbuilder.add_wall(4, 7, 30, 30, 130, 30, fp)
 
 print(fp)
 

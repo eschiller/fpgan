@@ -40,3 +40,8 @@ def get_test_fp():
     fp = add_wall(7, 4, 130, 30, 130, 130, fp)
     fp = add_wall(4, 7, 30, 30, 130, 30, fp)
     return fp
+
+
+def get_repeat_ds(count=50):
+    m1 = get_test_fp()
+    return np.tile(m1, (count, 1, 1, 1))

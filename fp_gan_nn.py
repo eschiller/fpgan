@@ -1,20 +1,19 @@
 import sys
 sys.path.append("./data")
+from fpdatamgr import fpdatamgr
 import tensorflow as tf
 import numpy as np
 import tf_utils
-import npfpbuilder
 
 
 
 
-
-
-class mnist_gan_nn:
+class fp_gan_nn:
     def __init__(self, batch_size = 100, learn_rate_dn=0.0001, learn_rate_gn=0.0001, optimizer=tf.train.AdamOptimizer):
+        np.set_printoptions(threshold=np.nan)
         self.batch_size = batch_size
         #initialize some vars
-        self.fp_data = npfpbuilder.get_repeat_ds(200)
+        self.fp_data = fpdatamgr().generate_test_set(20000)
 
         #INPUTS/PARAMS
         #self.real_x_sig = tf.nn.sigmoid(self.real_x)
@@ -25,7 +24,7 @@ class mnist_gan_nn:
         self.w_gn_h1 = tf_utils.weight_var([100, 1024], name="gen_w1")
         self.w_gn_h2 = tf_utils.weight_var([1024, 128*2*2], name="gen_w2")
         self.w_gn_h3 = tf_utils.weight_var([5, 5, 64, 128], name="gen_w3")
-        self.w_gn_h4 = tf_utils.weight_var([5, 5, 1, 64])
+        self.w_gn_h4 = tf_utils.weight_var([5, 5, 5, 64])
 
         self.w_dn_h1 = tf_utils.weight_var([5, 5, 5, 8], name="discrim_w1")
         self.w_dn_h2 = tf_utils.weight_var([5, 5, 8, 16], name="discrim_w1")
@@ -34,7 +33,7 @@ class mnist_gan_nn:
         #INPUT PARAMS
 
         self.noise = tf.placeholder(tf.float32, shape=[self.batch_size, 100])
-        self.real_x = tf.placeholder(tf.float32, shape=[self.batch_size, 784])
+        self.real_x = tf.placeholder(tf.float32, shape=[self.batch_size, 8, 8, 5])
 
         #####
         #COST AND TRAINING
@@ -137,10 +136,10 @@ class mnist_gan_nn:
         #X = tf.reshape(image, [100, 28, 28, 1])
 
         # [100, 8, 8, 5] with filters [5, 5, 5, 8] gonna output [100, 8, 8, 8]
-        h1 = tf.nn.relu( tf.nn.conv2d( fpdata, self.w_dn_h1, strides=[1,1,1,1], padding='VALID' ))
+        h1 = tf.nn.relu( tf.nn.conv2d( fpdata, self.w_dn_h1, strides=[1,1,1,1], padding='SAME' ))
 
         #conv2d([100, 8, 8, 8] with filters [5, 5, 8, 16]) = [100, 8, 8, 16]
-        h2 = tf.nn.relu( tf.nn.conv2d( h1, self.w_dn_h2, strides=[1,1,1,1], padding='VALID') )
+        h2 = tf.nn.relu( tf.nn.conv2d( h1, self.w_dn_h2, strides=[1,1,1,1], padding='SAME') )
 
         #[100, 8*8*16]
         h2 = tf.reshape(h2, [self.batch_size, -1])
@@ -166,7 +165,7 @@ class mnist_gan_nn:
     def train_dn(self, rep, size=100, check_acc=False):
         feed_noise = np.random.uniform(-1, 1, size=[size, 100]).astype(np.float32)
         #start = (rep % 50) * 100
-        start = 1
+        start = 0
         end = start + 100
         if check_acc:
             acc, gen_y_sig, gen_y = self.sess.run([self.ce_dn, self.gen_y_sig, self.gen_y], feed_dict={self.real_x: self.fp_data[start:end], self.noise: feed_noise})
@@ -200,6 +199,7 @@ class mnist_gan_nn:
 
     def save_checkpoint(self, reps):
         fp_samples = self.generate(100)
+        print fp_samples[0]
         #mnist_imaging.save_image(images, "4gen_cp_reps_" + str(reps) + "_" + "1.jpg")
         #mnist_imaging.save_image(images[1:4], "4gen_cp_reps_" + str(reps) + "_" + "2.jpg")
         #mnist_imaging.save_image(images[2:], "gen_cp_reps_" + str(reps) + "_" + "3")

@@ -1,0 +1,140 @@
+import numpy as np
+import math
+
+def mid_x(path):
+    return (path["p1x"] + path["p2x"]) / 2
+
+
+def mid_y(path):
+    return (path["p1y"] + path["p2y"]) / 2
+
+
+class fpdata:
+    '''
+    Basic data object for managing a single floorplan
+    '''
+    def __init__(self, np_x_dim=8, np_y_dim=8):
+        self.paths = []
+        self.np_x_dim = np_x_dim
+        self.np_y_dim = np_y_dim
+
+
+    def __str__(self):
+        return str(self.paths)
+
+
+    def add_path(self, type_value, p1x_value, p1y_value, p2x_value, p2y_value):
+        '''
+        Add single path (either a wall or a door) to the floor plan
+
+        :param type_value: string value. Currently should be either "wall" or "door"
+        :param p1x_value: point 1 x-value for path
+        :param p1y_value: point 1 y-value for path
+        :param p2x_value: point 2 x-value for path
+        :param p2y_value: point 2 y value for path
+        '''
+        self.paths.append({"pathtype": type_value, "p1x": p1x_value, "p1y": p1y_value,
+                           "p2x": p2x_value, "p2y": p2y_value})
+
+
+    def get_paths(self):
+        '''
+        returns all paths
+        :return: all paths as a list of dicts
+        '''
+        return self.paths
+
+
+    def normalize(self):
+        '''
+        normalizes the floorplan data, both scaling all internal geometry to y value of 0-160
+        and snapping all values to the nearest integer value
+        '''
+        #snap all so that lowest y equals 0
+        miny = 170
+
+        for apath in self.paths:
+            if apath["p1y"] < miny:
+                miny = apath["p1y"]
+
+            if apath["p2y"] < miny:
+                miny = apath["p2y"]
+
+        y_modifier = miny
+        for apath in self.paths:
+            for key in apath.keys():
+                if key != 'pathtype':
+                    apath[key] -= y_modifier
+
+
+        #find max y value
+        maxy = 0
+
+        for apath in self.paths:
+            if apath["p1y"] > maxy:
+                maxy = apath["p1y"]
+
+            if apath["p2y"] > maxy:
+                maxy = apath["p2y"]
+
+        #get factor by which it should be increased/decreased
+        multiplier = 160.0 / maxy
+
+        #alter each value by the amount indicated in the multiplier and snap to nearest int
+        for apath in self.paths:
+            for key in apath.keys():
+                if key != 'pathtype':
+                    apath[key] *= multiplier
+                    apath[key] = round(apath[key])
+
+
+    def to_numpy_array(self):
+        '''
+        Converts and returns a numpy array for the data contained in the fpdata object.
+        NumPy array will be size (self.np_x_dim, self.np_y_dim, 5). This function
+        arranges data as follows:
+         * y-index is determined by dividing all possible y coordinates by the np_y_dim size,
+         creating a number of y-slices, and putting each path in a slice according to the y-value
+         of it's midpoint
+         * paths in each slice are sorted according to their relative x-midpoint, then
+         are centered and placed according to thier sort location.
+
+        :return: NumPy representation of fpdata object
+        '''
+        # init y slots
+        y_cats = [None] * self.np_y_dim
+        for i in range(self.np_y_dim):
+            y_cats[i] = []
+
+        #git slot size so that we can put it in the right y slot
+        slot_size = math.floor( 160 / self.np_y_dim )
+
+        #put each path in the correct category
+        for apath in self.paths:
+            slot_index, scratch = divmod(mid_y(apath), slot_size)
+            y_cats[int(slot_index) - 1].append(apath)
+
+
+        #sort each category
+        for i in range(len(y_cats)):
+            for j in range(len(y_cats[i]) - 1):
+                for k in range(len(y_cats[i]) - 1):
+                    if y_cats[i][k] > y_cats[i][k + 1]:
+                        temp = y_cats[i][k]
+                        y_cats[i][k] = y_cats[i][k + 1]
+                        y_cats[i][k + 1] = temp
+
+        #make the numpy matrix and place everything appropriately
+        ret_mat = np.zeros((self.np_x_dim, self.np_y_dim, 5))
+        for i in range(len(y_cats)):
+            offset, _scratch = divmod((self.np_x_dim - len(y_cats[i])), 2)
+            for path in y_cats[i]:
+                ret_mat[offset, i, 0] = path['pathtype']
+                ret_mat[offset, i, 1] = path['p1x']
+                ret_mat[offset, i, 2] = path['p1y']
+                ret_mat[offset, i, 3] = path['p2x']
+                ret_mat[offset, i, 4] = path['p2y']
+                offset += 1
+
+        #finally return
+        return ret_mat

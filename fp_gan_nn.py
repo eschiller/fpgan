@@ -171,7 +171,6 @@ class fp_gan_nn:
             acc, gen_y_sig, gen_y = self.sess.run([self.ce_dn, self.gen_y_sig, self.gen_y], feed_dict={self.real_x: self.fp_data[start:end], self.noise: feed_noise})
             print("dn accuracy: " + str(acc))
             print("gen x avg: " + str(gen_y_sig.mean()))
-            print("gen_y" + str(gen_y))
         else:
             self.sess.run(self.train_step_dn, feed_dict={self.real_x: self.fp_data[start:end], self.noise: feed_noise})
 
@@ -199,7 +198,7 @@ class fp_gan_nn:
 
     def save_checkpoint(self, reps):
         fp_samples = self.generate(100)
-        print fp_samples[0]
+        print np.rint(fp_samples[0])
         #mnist_imaging.save_image(images, "4gen_cp_reps_" + str(reps) + "_" + "1.jpg")
         #mnist_imaging.save_image(images[1:4], "4gen_cp_reps_" + str(reps) + "_" + "2.jpg")
         #mnist_imaging.save_image(images[2:], "gen_cp_reps_" + str(reps) + "_" + "3")

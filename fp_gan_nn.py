@@ -169,5 +169,3 @@ class fp_gan_nn:
     def save_checkpoint(self, reps):
         fp_samples = self.generate(100)
         print np.rint(fp_samples[0])
-
-

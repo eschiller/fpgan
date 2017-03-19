@@ -9,15 +9,14 @@ import tf_utils
 
 
 class fp_gan_nn:
-    def __init__(self, batch_size = 100, learn_rate_dn=0.0001, learn_rate_gn=0.0001, optimizer=tf.train.AdamOptimizer):
+    def __init__(self, batch_size=100, learn_rate_dn=0.0001, learn_rate_gn=0.0001, train_data_size=20000, optimizer=tf.train.AdamOptimizer):
+        #make sure printing numpy arrays is in full
         np.set_printoptions(threshold=np.nan)
-        self.batch_size = batch_size
+
         #initialize some vars
-        self.fp_data = fpdatamgr().generate_test_set(20000)
-
-        #INPUTS/PARAMS
-        #self.real_x_sig = tf.nn.sigmoid(self.real_x)
-
+        self.batch_size = batch_size
+        self.train_data_size=train_data_size
+        self.fp_data = fpdatamgr().generate_test_set(self.train_data_size)
 
 
         #VARIABLES
@@ -31,7 +30,6 @@ class fp_gan_nn:
         self.w_dn_h3 = tf_utils.weight_var([16*8*8, 1024])
 
         #INPUT PARAMS
-
         self.noise = tf.placeholder(tf.float32, shape=[self.batch_size, 100])
         self.real_x = tf.placeholder(tf.float32, shape=[self.batch_size, 8, 8, 5])
 
@@ -45,6 +43,8 @@ class fp_gan_nn:
         self.gen_y_sig = tf.nn.sigmoid(self.gen_y)
         self.raw_real = self.dn(self.real_x)
         self.p_real = tf.nn.sigmoid(self.raw_real)
+
+        #todo you could try not running gen_y through sigmoid
         self.raw_gen = self.dn(self.gen_y_sig)
         self.p_gen = tf.nn.sigmoid(self.raw_gen)
 
@@ -68,7 +68,11 @@ class fp_gan_nn:
 
 
     def gn(self, Z):
-        #todo change size of Z to more closely match other (100)
+        '''
+        Accept [batch_size, 100] of noise and outputs [batch_size, 8, 8, 5] of generated floorplans
+        :param Z:
+        :return:
+        '''
         # matmul [100, 100] * [100, 1024], resulting in [100, 1024]
         h1 = tf.nn.relu(tf.matmul(Z, self.w_gn_h1))
 
@@ -81,71 +85,37 @@ class fp_gan_nn:
         #output shape is [100, 4, 4, 64]
         output_shape_l3 = [self.batch_size,4,4,64]
 
-        #well, here I guess we've got [100, 7, 7, 138] * [5, 5, 64, 138] = [100, 14, 14, 64]? Pretty sure we're just making shit up now.
+        #[100, 2, 2, 128] with filters of [5, 5, 64, 128] at [1,2,2,1] strides will have output shape of [100,4,4,128] after transpose
         h3 = tf.nn.conv2d_transpose(h2, self.w_gn_h3, output_shape=output_shape_l3, strides=[1,2,2,1])
         h3 = tf.nn.relu(h3)
 
         # output shape is [100, 8, 8, 5]
         output_shape_l4 = [self.batch_size,8,8,5]
 
-        #ok, so [100, 14, 14, 74] * [5, 5, 1, 74] resulting in [100, 28, 28, 1] after transpose
+        #ok, so [100,4,4,128] with filters at [5,5,5,64] and strides [1,2,2,1] will have [100,8,8,5] after transpose
         h4 = tf.nn.conv2d_transpose(h3, self.w_gn_h4, output_shape=output_shape_l4, strides=[1,2,2,1])
 
-        # I don't think we need to reshape here. We'll just output in the correct shape
-        #and return the [100, 28, 28, 1]
-        #h4 = tf.reshape(h4, [100, 784])
         return h4
-
-
-    def samples_generator(self, batch_size):
-        Z = tf.placeholder(tf.float32, [batch_size, 100])
-
-        h1 = tf.nn.relu(tf.matmul(Z, self.w_gn_h1))
-
-        #gen_W2 is [100, 1024] * [1024, 6272] resulting in [100, 6272 (128 * 7 * 7)]
-        h2 = tf.nn.relu(tf.matmul(h1, self.w_gn_h2))
-
-        # this will result in [100, 7, 7, 128]
-        h2 = tf.reshape(h2, [self.batch_size,7,7,128])
-
-        #output shape is [100, 14, 14, 64]
-        output_shape_l3 = [self.batch_size,14,14,64]
-
-        #well, here I guess we've got [100, 7, 7, 138] * [5, 5, 64, 138] = [100, 14, 14, 64]? Pretty sure we're just making shit up now.
-        h3 = tf.nn.conv2d_transpose(h2, self.w_gn_h3, output_shape=output_shape_l3, strides=[1,2,2,1])
-        h3 = tf.nn.relu(h3)
-
-        # output shape is [100, 28, 28, 1]
-        output_shape_l4 = [self.batch_size,28,28,1]
-
-        #ok, so [100, 14, 14, 74] * [5, 5, 1, 74] resulting in [100, 28, 28, 1] after transpose
-        h4 = tf.nn.conv2d_transpose(h3, self.w_gn_h4, output_shape=output_shape_l4, strides=[1,2,2,1])
-
-        #and return the [100, 28, 28, 1]
-        h4 = tf.reshape(h4, [100, 784])
-        x = tf.nn.sigmoid(h4)
-        return Z,x
 
 
 
     def dn(self, fpdata):
-
-        # Can do a reshape here if needed, but since we're planning on working directly in 8x8x5 I don't think
-        # We need to
-        #[100, 28, 28, 1]
-        #X = tf.reshape(image, [100, 28, 28, 1])
-
+        '''
+        Accept [batch_size, 8, 8, 5] and outputs [batch_size, 1024]. The 1024 is the classification
+        :param fpdata:
+        :return:
+        '''
         # [100, 8, 8, 5] with filters [5, 5, 5, 8] gonna output [100, 8, 8, 8]
         h1 = tf.nn.relu( tf.nn.conv2d( fpdata, self.w_dn_h1, strides=[1,1,1,1], padding='SAME' ))
 
         #conv2d([100, 8, 8, 8] with filters [5, 5, 8, 16]) = [100, 8, 8, 16]
         h2 = tf.nn.relu( tf.nn.conv2d( h1, self.w_dn_h2, strides=[1,1,1,1], padding='SAME') )
 
-        #[100, 8*8*16]
+        #reshape for [100, 8*8*16]
         h2 = tf.reshape(h2, [self.batch_size, -1])
 
-        #[100, 8*8*16 + 10] * [8*8*16, 1024] = [100, 1024]
-        h3 = tf.nn.relu( tf.matmul(h2, self.w_dn_h3 ) )
+        #[100, 8*8*16] * [8*8*16, 1024] = [100, 1024]
+        h3 = tf.nn.relu(tf.matmul(h2, self.w_dn_h3))
 
         #returns [100, 1024]
         return h3
@@ -164,14 +134,14 @@ class fp_gan_nn:
 
     def train_dn(self, rep, size=100, check_acc=False):
         feed_noise = np.random.uniform(-1, 1, size=[size, 100]).astype(np.float32)
-        #start = (rep % 50) * 100
-        start = 0
-        end = start + 100
+
+        #If we're going to go past the size of the training data, we'll loop back to the beginning with a modulus op
+        scratch, start = divmod((rep * size) + size, self.train_data_size)
+        end = start + size
         if check_acc:
             acc, gen_y_sig, gen_y = self.sess.run([self.ce_dn, self.gen_y_sig, self.gen_y], feed_dict={self.real_x: self.fp_data[start:end], self.noise: feed_noise})
             print("dn accuracy: " + str(acc))
             print("gen x avg: " + str(gen_y_sig.mean()))
-            print("gen_y" + str(gen_y))
         else:
             self.sess.run(self.train_step_dn, feed_dict={self.real_x: self.fp_data[start:end], self.noise: feed_noise})
 
@@ -184,11 +154,10 @@ class fp_gan_nn:
                 print("done with round: " + str(i))
 
                 self.train_gn(check_acc=True)
-                self.train_dn(i, check_acc=True)
+                self.train_dn(i, self.batch_size, check_acc=True)
 
             self.train_dn(i)
             self.train_gn()
-            #print("done with round: " + str(i))
 
 
 
@@ -199,11 +168,6 @@ class fp_gan_nn:
 
     def save_checkpoint(self, reps):
         fp_samples = self.generate(100)
-        print fp_samples[0]
-        #mnist_imaging.save_image(images, "4gen_cp_reps_" + str(reps) + "_" + "1.jpg")
-        #mnist_imaging.save_image(images[1:4], "4gen_cp_reps_" + str(reps) + "_" + "2.jpg")
-        #mnist_imaging.save_image(images[2:], "gen_cp_reps_" + str(reps) + "_" + "3")
-        #mnist_imaging.save_image(images[3:], "gen_cp_reps_" + str(reps) + "_" + "4")
-        #mnist_imaging.save_image(images[4:], "gen_cp_reps_" + str(reps) + "_" + "5")
+        print np.rint(fp_samples[0])
 
 

@@ -69,5 +69,4 @@ class fpdatamgr:
         for i in range(size):
             self.add_fp(fp1)
 
-        print self.fplist[3]
-        return self.to_numpy_array(0, 99)
+        return self.to_numpy_array(0, (size - 1))

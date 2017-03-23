@@ -1,6 +1,7 @@
 import sys
 sys.path.append("./data")
 from fpdatamgr import fpdatamgr
+import fpdata
 import tensorflow as tf
 import numpy as np
 import tf_utils
@@ -9,7 +10,7 @@ import tf_utils
 
 
 class fp_gan_nn:
-    def __init__(self, batch_size=100, learn_rate_dn=0.0001, learn_rate_gn=0.0001, train_data_size=20000, optimizer=tf.train.AdamOptimizer):
+    def __init__(self, batch_size=100, learn_rate_dn=0.00001, learn_rate_gn=0.00001, train_data_size=20000, optimizer=tf.train.AdamOptimizer):
         #make sure printing numpy arrays is in full
         np.set_printoptions(threshold=np.nan)
 
@@ -168,4 +169,7 @@ class fp_gan_nn:
 
     def save_checkpoint(self, reps):
         fp_samples = self.generate(100)
-        print np.rint(fp_samples[0])
+
+        #todo alter the np.multiply. This was just for temporary testing
+        print np.rint(np.multiply(160, fp_samples[0]))
+        #print fpdata.rescale(fp_samples)[0]

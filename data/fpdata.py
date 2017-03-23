@@ -2,11 +2,24 @@ import numpy as np
 import math
 
 def mid_x(path):
-    return (path["p1x"] + path["p2x"]) / 2
+    return (path["p1x"] + path["p2x"]) / 2.0
 
 
 def mid_y(path):
-    return (path["p1y"] + path["p2y"]) / 2
+    return (path["p1y"] + path["p2y"]) / 2.0
+
+
+def rescale(npdata, multiplier=160, snap=True):
+    new_mat = np.zeros(npdata.shape)
+    for i in range(npdata.shape[0]):
+        for j in range(npdata.shape[1]):
+            for k in range(npdata.shape[2]):
+                for l in range(1, npdata.shape[3]):
+                    new_mat[i][j][k][l] = npdata[i][j][k][l] * multiplier
+    if snap:
+        return np.rint(new_mat)
+    else:
+        return new_mat
 
 
 class fpdata:
@@ -51,7 +64,7 @@ class fpdata:
         and snapping all values to the nearest integer value
         '''
         #snap all so that lowest y equals 0
-        miny = 170
+        miny = self.paths[0]["p1y"]
 
         for apath in self.paths:
             if apath["p1y"] < miny:
@@ -61,31 +74,35 @@ class fpdata:
                 miny = apath["p2y"]
 
         y_modifier = miny
+
         for apath in self.paths:
             for key in apath.keys():
                 if key != 'pathtype':
                     apath[key] -= y_modifier
 
 
-        #find max y value
-        maxy = 0
+        #find max value
+        maxval = 0
 
         for apath in self.paths:
-            if apath["p1y"] > maxy:
-                maxy = apath["p1y"]
+            if apath["p1y"] > maxval:
+                maxval = apath["p1y"]
 
-            if apath["p2y"] > maxy:
-                maxy = apath["p2y"]
+            if apath["p2y"] > maxval:
+                maxval = apath["p2y"]
 
-        #get factor by which it should be increased/decreased
-        multiplier = 160.0 / maxy
+            if apath["p1x"] > maxval:
+                maxval = apath["p1x"]
+
+            if apath["p2x"] > maxval:
+                maxval = apath["p2x"]
+
 
         #alter each value by the amount indicated in the multiplier and snap to nearest int
         for apath in self.paths:
             for key in apath.keys():
                 if key != 'pathtype':
-                    apath[key] *= multiplier
-                    apath[key] = round(apath[key])
+                    apath[key] = apath[key] / maxval
 
 
     def to_numpy_array(self):
@@ -107,7 +124,7 @@ class fpdata:
             y_cats[i] = []
 
         #git slot size so that we can put it in the right y slot
-        slot_size = math.floor( 160 / self.np_y_dim )
+        slot_size = 1.0 / self.np_y_dim
 
         #put each path in the correct category
         for apath in self.paths:

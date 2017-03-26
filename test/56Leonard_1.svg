@@ -145,7 +145,7 @@
        inkscape:connector-curvature="0" />
     <path
        style="fill:none;stroke:#000000;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="m 68.380908,131.42653 v 0 -1.87089 h -7.857724"
+       d="m 68.380908,131.42653 v -1.87089 h -7.857724"
        id="path3835"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="ccc" />

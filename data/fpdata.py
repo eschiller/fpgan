@@ -14,6 +14,7 @@ def rescale(npdata, multiplier=160, snap=True):
     for i in range(npdata.shape[0]):
         for j in range(npdata.shape[1]):
             for k in range(npdata.shape[2]):
+                new_mat[i][j][k][0] = npdata[i][j][k][0]
                 for l in range(1, npdata.shape[3]):
                     new_mat[i][j][k][l] = npdata[i][j][k][l] * multiplier
     if snap:

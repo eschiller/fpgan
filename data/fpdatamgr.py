@@ -35,6 +35,8 @@ class fpdatamgr:
         self.np_x_dim = np_x_dim
         self.np_y_dim = np_y_dim
         self.fplist = []
+        self.samples = []
+        self.wall_threshold = .95
 
 
     def __str__(self):
@@ -48,6 +50,10 @@ class fpdatamgr:
         return self.fplist[index]
 
 
+    def get_sample_fp(self, index):
+        return self.samples[index]
+
+
     def add_fp(self, fp):
         '''
         Adds the passed fpdata object to the end of the fplist list
@@ -55,6 +61,10 @@ class fpdatamgr:
         :param fp: fpdata object to add
         '''
         self.fplist.append(fp)
+
+
+    def add_sample_fp(self, fp):
+        self.samples.append(fp)
 
 
     def import_svg_file(self, file_path):
@@ -171,13 +181,30 @@ class fpdatamgr:
             fp1.add_path(1, wall[0], wall[1], wall[2], wall[3])
 
         #add the floorplan and return
+        fp1.normalize()
         self.add_fp(fp1)
 
         return 0
 
 
-    def export_svg(self, index, filename):
-        target_fp = self.get_data_fp(index)
+    def import_sample_fp(self, np_array):
+        fp1 = fpdata.fpdata()
+
+        for i in range(np.shape(np_array)[0]):
+            for j in range(np.shape(np_array)[1]):
+                if np_array[i][j][0] > self.wall_threshold:
+                    fp1.add_path(1.0, np_array[i][j][1], np_array[i][j][2], np_array[i][j][3], np_array[i][j][4])
+
+
+        self.add_sample_fp(fp1)
+
+
+    def export_svg(self, index, filename, source="samples"):
+        if source == "data":
+            target_fp = self.get_data_fp(index)
+        else:
+            target_fp = self.get_sample_fp(index)
+
         fp_paths = target_fp.get_paths()
 
         top = Element('svg', {"xmlns:dc": "http://purl.org/dc/elements/1.1/",
@@ -289,6 +316,16 @@ class fpdatamgr:
         fp1.add_path(1, 130, 130, 130, 30)
         fp1.add_path(1, 130, 30, 30, 30)
         fp1.normalize()
+        for i in range(size):
+            self.add_fp(fp1)
+
+        return self.to_numpy_array(0, (size - 1))
+
+
+    def generate_svg_test_set(self, path_name, size):
+        self.import_svg_file(path_name)
+        fp1 = self.get_data_fp(-1)
+
         for i in range(size):
             self.add_fp(fp1)
 

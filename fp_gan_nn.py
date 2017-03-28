@@ -17,7 +17,8 @@ class fp_gan_nn:
         #initialize some vars
         self.batch_size = batch_size
         self.train_data_size=train_data_size
-        self.fp_data = fpdatamgr().generate_test_set(self.train_data_size)
+        self.datamgr = fpdatamgr()
+        self.fp_data = self.datamgr.generate_test_set(self.train_data_size)
 
 
         #VARIABLES
@@ -169,7 +170,12 @@ class fp_gan_nn:
 
     def save_checkpoint(self, reps):
         fp_samples = self.generate(100)
+        rescaled_samples = fpdata.rescale(fp_samples, snap=False)
+        sample_to_out = rescaled_samples[0]
+        print(sample_to_out)
+        self.datamgr.import_sample_fp(sample_to_out)
+        self.datamgr.export_svg(-1, "./samples/test" + str(reps))
 
         #todo alter the np.multiply. This was just for temporary testing
-        print np.rint(np.multiply(160, fp_samples[0]))
+        #print np.rint(np.multiply(160, fp_samples[0]))
         #print fpdata.rescale(fp_samples)[0]

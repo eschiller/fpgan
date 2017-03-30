@@ -78,7 +78,7 @@ class fpdata:
 
         for apath in self.paths:
             for key in apath.keys():
-                if key != 'pathtype':
+                if (key == 'p1y') or (key == 'p2y'):
                     apath[key] -= y_modifier
 
 

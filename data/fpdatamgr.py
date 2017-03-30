@@ -324,6 +324,7 @@ class fpdatamgr:
 
     def generate_svg_test_set(self, path_name, size):
         self.import_svg_file(path_name)
+        print(self.get_data_fp(-1))
         fp1 = self.get_data_fp(-1)
 
         for i in range(size):

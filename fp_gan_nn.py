@@ -10,7 +10,7 @@ import tf_utils
 
 
 class fp_gan_nn:
-    def __init__(self, batch_size=100, learn_rate_dn=0.00001, learn_rate_gn=0.00001, train_data_size=20000, optimizer=tf.train.AdamOptimizer):
+    def __init__(self, batch_size=100, learn_rate_dn=0.0001, learn_rate_gn=0.0001, train_data_size=20000, optimizer=tf.train.AdamOptimizer):
         #make sure printing numpy arrays is in full
         np.set_printoptions(threshold=np.nan)
 
@@ -18,19 +18,19 @@ class fp_gan_nn:
         self.batch_size = batch_size
         self.train_data_size=train_data_size
         self.datamgr = fpdatamgr()
-        #self.fp_data = self.datamgr.generate_svg_test_set("./test/56Leonard_1.svg", self.train_data_size)
-        self.fp_data = self.datamgr.generate_test_set(self.train_data_size)
+        self.fp_data = self.datamgr.generate_svg_test_set("./test/56Leonard_1.svg", self.train_data_size)
+        #self.fp_data = self.datamgr.generate_test_set(self.train_data_size)
 
         print(self.fp_data[0])
 
 
         #VARIABLES
         self.w_gn_h1 = tf_utils.weight_var([100, 1024], name="gen_w1")
-        self.w_gn_h2 = tf_utils.weight_var([1024, 128*2*2], name="gen_w2")
+        self.w_gn_h2 = tf_utils.weight_var([1024, 128*4*4], name="gen_w2")
         self.w_gn_h3 = tf_utils.weight_var([5, 5, 64, 128], name="gen_w3")
         self.w_gn_h4 = tf_utils.weight_var([5, 5, 5, 64])
 
-        self.w_dn_h1 = tf_utils.weight_var([5, 5, 5, 8], name="discrim_w1")
+        self.w_dn_h1 = tf_utils.weight_var([1, 1, 5, 8], name="discrim_w1")
         self.w_dn_h2 = tf_utils.weight_var([5, 5, 8, 16], name="discrim_w1")
         self.w_dn_h3 = tf_utils.weight_var([16*8*8, 1024])
 
@@ -85,13 +85,13 @@ class fp_gan_nn:
         h2 = tf.nn.relu(tf.matmul(h1, self.w_gn_h2))
 
         # this will result in [100, 2, 2, 128]
-        h2 = tf.reshape(h2, [self.batch_size,2,2,128])
+        h2 = tf.reshape(h2, [self.batch_size,4,4,128])
 
         #output shape is [100, 4, 4, 64]
         output_shape_l3 = [self.batch_size,4,4,64]
 
         #[100, 2, 2, 128] with filters of [5, 5, 64, 128] at [1,2,2,1] strides will have output shape of [100,4,4,128] after transpose
-        h3 = tf.nn.conv2d_transpose(h2, self.w_gn_h3, output_shape=output_shape_l3, strides=[1,2,2,1])
+        h3 = tf.nn.conv2d_transpose(h2, self.w_gn_h3, output_shape=output_shape_l3, strides=[1,1,1,1])
         h3 = tf.nn.relu(h3)
 
         # output shape is [100, 8, 8, 5]

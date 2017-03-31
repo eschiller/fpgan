@@ -311,10 +311,11 @@ class fpdatamgr:
     def generate_test_set(self, size=100):
 
         fp1 = fpdata.fpdata()
-        fp1.add_path(1, 30, 30, 30, 130)
-        fp1.add_path(1, 30, 130, 130, 130)
-        fp1.add_path(1, 130, 130, 130, 30)
-        fp1.add_path(1, 130, 30, 30, 30)
+        fp1.add_path(1, 30.0, 30.0, 30.0, 130.0)
+        fp1.add_path(1, 30.0, 130.0, 130.0, 130.0)
+        fp1.add_path(1, 130.0, 130.0, 130.0, 30.0)
+        fp1.add_path(1, 130.0, 30.0, 30.0, 30.0)
+        fp1.add_path(1, 80.0, 30.0, 80.0, 130.0)
         fp1.normalize()
         for i in range(size):
             self.add_fp(fp1)

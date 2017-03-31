@@ -18,8 +18,8 @@ class fp_gan_nn:
         self.batch_size = batch_size
         self.train_data_size=train_data_size
         self.datamgr = fpdatamgr()
-        self.fp_data = self.datamgr.generate_svg_test_set("./test/56Leonard_1.svg", self.train_data_size)
-        #self.fp_data = self.datamgr.generate_test_set(self.train_data_size)
+        #self.fp_data = self.datamgr.generate_svg_test_set("./test/56Leonard_1.svg", self.train_data_size)
+        self.fp_data = self.datamgr.generate_test_set(self.train_data_size)
 
         print(self.fp_data[0])
 

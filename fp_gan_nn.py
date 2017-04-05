@@ -175,10 +175,10 @@ class fp_gan_nn:
         fp_samples = self.generate(100)
         rescaled_samples = fpdata.rescale(fp_samples, snap=False)
         sample_to_out = rescaled_samples[0]
-        print(sample_to_out)
+
+        #uncomment below to get printouts of sample
+        #print(sample_to_out)
+
         self.datamgr.import_sample_fp(sample_to_out)
         self.datamgr.export_svg(-1, "./samples/test" + str(reps))
 
-        #todo alter the np.multiply. This was just for temporary testing
-        #print np.rint(np.multiply(160, fp_samples[0]))
-        #print fpdata.rescale(fp_samples)[0]

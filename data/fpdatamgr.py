@@ -68,6 +68,12 @@ class fpdatamgr:
 
 
     def import_svg_file(self, file_path):
+        '''
+        Imports an svg file to the fpdatamgr as a fpdata object.
+
+        :param file_path:
+        :return:
+        '''
         walls = []
         cursor = {"x": 0.0, "y": 0.0}
         paths = get_svg_layer_paths(file_path)

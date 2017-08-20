@@ -5,3 +5,7 @@ def weight_var(shape, name=None):
 
 def bias_var(shape):
     return tf.Variable(tf.zeros(shape, dtype=tf.float32))
+
+
+def leaky_relu(x, alpha=0.1):
+    return tf.maximum(alpha * x, x)

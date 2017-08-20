@@ -8,13 +8,15 @@ import tf_utils
 
 
 
-
 class fp_gan_nn:
     def __init__(self, batch_size=100, learn_rate_dn=0.0001, learn_rate_gn=0.0001, train_data_size=20000, optimizer=tf.train.AdamOptimizer):
         #make sure printing numpy arrays is in full
         np.set_printoptions(threshold=np.nan)
 
         #initialize some vars
+        self.dropout = .75
+
+        self.keep_prob = tf.placeholder(tf.float32)
         self.batch_size = batch_size
         self.train_data_size=train_data_size
         self.datamgr = fpdatamgr()
@@ -110,17 +112,20 @@ class fp_gan_nn:
         :param fpdata:
         :return:
         '''
-        # [100, 8, 8, 5] with filters [5, 5, 5, 8] gonna output [100, 8, 8, 8]
-        h1 = tf.nn.relu( tf.nn.conv2d( fpdata, self.w_dn_h1, strides=[1,1,1,1], padding='SAME' ))
+        # [100, 8, 8, 5] with filters [1, 1, 5, 8] gonna output [100, 8, 8, 8]
+        h1 = tf_utils.leaky_relu( tf.nn.conv2d( fpdata, self.w_dn_h1, strides=[1,1,1,1], padding='SAME' ))
 
         #conv2d([100, 8, 8, 8] with filters [5, 5, 8, 16]) = [100, 8, 8, 16]
-        h2 = tf.nn.relu( tf.nn.conv2d( h1, self.w_dn_h2, strides=[1,1,1,1], padding='SAME') )
+        h2 = tf_utils.leaky_relu( tf.nn.conv2d( h1, self.w_dn_h2, strides=[1,1,1,1], padding='SAME') )
 
         #reshape for [100, 8*8*16]
         h2 = tf.reshape(h2, [self.batch_size, -1])
 
+        #todo revisit if we should do dropout. It hasn't seemed very successful.
+        #h2 = tf.nn.dropout(h2, self.keep_prob)
+
         #[100, 8*8*16] * [8*8*16, 1024] = [100, 1024]
-        h3 = tf.nn.relu(tf.matmul(h2, self.w_dn_h3))
+        h3 = tf_utils.leaky_relu(tf.matmul(h2, self.w_dn_h3))
 
         #returns [100, 1024]
         return h3
@@ -131,10 +136,10 @@ class fp_gan_nn:
         feed_noise = np.random.uniform(-1, 1, size=[size, 100]).astype(np.float32)
 
         if check_acc:
-            acc = self.sess.run(self.ce_gn, feed_dict={self.noise: feed_noise})
+            acc = self.sess.run(self.ce_gn, feed_dict={self.noise: feed_noise, self.keep_prob: 1.0})
             print("gn accuracy: " + str(acc))
         else:
-            self.sess.run(self.train_step_gn, feed_dict={self.noise: feed_noise})
+            self.sess.run(self.train_step_gn, feed_dict={self.noise: feed_noise, self.keep_prob: 1.0})
 
 
     def train_dn(self, rep, size=100, check_acc=False):
@@ -144,11 +149,11 @@ class fp_gan_nn:
         scratch, start = divmod((rep * size) + size, self.train_data_size)
         end = start + size
         if check_acc:
-            acc, gen_y_sig, gen_y = self.sess.run([self.ce_dn, self.gen_y_sig, self.gen_y], feed_dict={self.real_x: self.fp_data[start:end], self.noise: feed_noise})
+            acc, gen_y_sig, gen_y = self.sess.run([self.ce_dn, self.gen_y_sig, self.gen_y], feed_dict={self.real_x: self.fp_data[start:end], self.noise: feed_noise, self.keep_prob: 1.0})
             print("dn accuracy: " + str(acc))
             print("gen x avg: " + str(gen_y_sig.mean()))
         else:
-            self.sess.run(self.train_step_dn, feed_dict={self.real_x: self.fp_data[start:end], self.noise: feed_noise})
+            self.sess.run(self.train_step_dn, feed_dict={self.real_x: self.fp_data[start:end], self.noise: feed_noise, self.keep_prob: self.dropout})
 
 
     def train_all(self, reps=1000):

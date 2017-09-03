@@ -9,7 +9,7 @@ def mid_y(path):
     return (path["p1y"] + path["p2y"]) / 2.0
 
 
-def rescale(npdata, multiplier=160, snap=True):
+def np_rescale(npdata, multiplier=160, snap=True):
     new_mat = np.zeros(npdata.shape)
     for i in range(npdata.shape[0]):
         for j in range(npdata.shape[1]):
@@ -59,12 +59,33 @@ class fpdata:
         return self.paths
 
 
+    def rescale(self, multiplier=160, snapto=False):
+        '''
+        Rescales all coordinates in the fpdata object by the amount indicated
+        by the multiplier parameter. Also has the ability to snap to integer
+        flooring all coordinates
+
+        :param multiplier:
+        :param floor:
+        '''
+        for path in self.paths:
+            path["p1x"] *= multiplier
+            path["p1y"] *= multiplier
+            path["p2x"] *= multiplier
+            path["p2y"] *= multiplier
+            if snapto:
+                path["p1x"] = round(path["p1x"])
+                path["p1y"] = round(path["p1y"])
+                path["p2x"] = round(path["p2x"])
+                path["p2y"] = round(path["p2y"])
+
+
     def normalize(self):
         '''
         normalizes the floorplan data, both scaling all internal geometry to y value of 0-160
         and snapping all values to the nearest integer value
         '''
-        #snap all so that lowest y equals 0
+        #move all so that lowest y equals 0
         miny = self.paths[0]["p1y"]
 
         for apath in self.paths:
@@ -81,6 +102,23 @@ class fpdata:
                 if (key == 'p1y') or (key == 'p2y'):
                     apath[key] -= y_modifier
 
+
+        #move all so that the lowest x equals 0
+        minx = self.paths[0]["p1x"]
+
+        for apath in self.paths:
+            if apath["p1x"] < minx:
+                minx = apath["p1x"]
+
+            if apath["p2x"] < minx:
+                minx = apath["p2x"]
+
+        x_modifier = minx
+
+        for apath in self.paths:
+            for key in apath.keys():
+                if (key == 'p1x') or (key == 'p2x'):
+                    apath[key] -= x_modifier
 
         #find max value
         maxval = 0

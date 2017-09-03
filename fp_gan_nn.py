@@ -173,7 +173,7 @@ class fp_gan_nn:
 
     def save_checkpoint(self, reps):
         fp_samples = self.generate(100)
-        rescaled_samples = fpdata.rescale(fp_samples, snap=False)
+        rescaled_samples = fpdata.np_rescale(fp_samples, snap=False)
         sample_to_out = rescaled_samples[0]
 
         #uncomment below to get printouts of sample

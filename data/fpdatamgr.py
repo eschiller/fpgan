@@ -1,12 +1,19 @@
 import fpdata
 import json
+import glob
 import numpy as np
 import xml.etree.ElementTree
 from xml.etree.ElementTree import Element, SubElement, tostring, XML
 import xml.dom.minidom
 import re
 
+def fix_svg(path):
+    '''
 
+    :param fp:
+    :param path:
+    :return:
+    '''
 
 def prettify(elem):
     """Return a pretty-printed XML string for the Element.
@@ -28,6 +35,20 @@ def get_svg_layer_paths(file_path, layer="layer1"):
         paths.append(path.attrib['d'])
 
     return paths
+
+
+def is_float(s):
+    '''
+    Tests whether a string is a float value or not
+
+    :param s: string to test
+    :return: True if string is a float, else False
+    '''
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
 
 
 class fpdatamgr:
@@ -64,127 +85,162 @@ class fpdatamgr:
 
 
     def add_sample_fp(self, fp):
+        '''
+        Adds the passed fpdata object to the end of the samples list
+
+        :param fp:  fpdata object to add
+        '''
         self.samples.append(fp)
 
 
-    def import_svg_file(self, file_path):
-        walls = []
-        cursor = {"x": 0.0, "y": 0.0}
-        paths = get_svg_layer_paths(file_path)
-        path_arrays = []
-        for path in paths:
-            path_arrays.append(re.split('[\s,]', path))
+    def import_svg_file(self, glob_string):
+        files_added = 0
 
-        for path in path_arrays:
-            print("full path is " + str(path))
-            print("starting a path")
-            #get starting coordinates to handle z command
-            start_coord = {"x": 0.0, "y": 0.0}
-            first_command = path.pop(0)
-            print("first command is " + first_command)
-            if first_command == "m":
-                print("command is m, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
+        file_glob = glob.glob(glob_string)
 
-                cursor["x"] = float(path.pop(0))
-                cursor["y"] = float(path.pop(0))
-                start_coord["x"] = cursor["x"]
-                start_coord["y"] = cursor["y"]
-            if first_command == "M":
-                print("command is M, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
-                cursor["x"] = float(path.pop(0))
-                cursor["y"] = float(path.pop(0))
-                start_coord["x"] = cursor["x"]
-                start_coord["y"] = cursor["y"]
+        for file_path in file_glob:
+            files_added += 1
+            print("importing file " + file_path)
+            walls = []
+            cursor = {"x": 0.0, "y": 0.0}
+            paths = get_svg_layer_paths(file_path)
+            path_arrays = []
+            for path in paths:
+                path_arrays.append(re.split('[\s,]', path))
 
-            while len(path) > 0:
-                awall = []
-                command = path.pop(0)
+            for path in path_arrays:
+                print("full path is " + str(path))
+                print("starting a path")
+                #get starting coordinates to handle z command
+                start_coord = {"x": 0.0, "y": 0.0}
+                first_command = path.pop(0)
+                print("first command is " + first_command)
+                if first_command == "m":
+                    print("command is m, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
 
-                #wall segment from current cursor to start
-                if (command == "z") or (command == "Z"):
-                    print("command is z, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
-                    awall.append(cursor["x"])
-                    awall.append(cursor["y"])
-                    awall.append(start_coord["x"])
-                    awall.append(start_coord["y"])
-                    walls.append(awall)
-
-                #wall segment from current cursor to relative location
-                elif command == "l":
-                    print("command is l, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
-                    awall.append(cursor["x"])
-                    awall.append(cursor["y"])
-                    cursor["x"] += float(path.pop(0))
-                    cursor["y"] += float(path.pop(0))
-                    awall.append(cursor["x"])
-                    awall.append(cursor["y"])
-                    walls.append(awall)
-
-                #wall segment from current cursor to absolute location
-                elif command == "L":
-                    print("command is L, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
-                    awall.append(cursor["x"])
-                    awall.append(cursor["y"])
                     cursor["x"] = float(path.pop(0))
                     cursor["y"] = float(path.pop(0))
-                    awall.append(cursor["x"])
-                    awall.append(cursor["y"])
-                    walls.append(awall)
-
-                #wall segment from cursor to relative horizontal loc
-                elif command == "h":
-                    print("command is h, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
-                    awall.append(cursor["x"])
-                    awall.append(cursor["y"])
-                    cursor["x"] += float(path.pop(0))
-                    awall.append(cursor["x"])
-                    awall.append(cursor["y"])
-                    walls.append(awall)
-
-                #wall segment from cursor to absolut horizontal loc
-                elif command == "H":
-                    print("command is H, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
-                    awall.append(cursor["x"])
-                    awall.append(cursor["y"])
+                    start_coord["x"] = cursor["x"]
+                    start_coord["y"] = cursor["y"]
+                if first_command == "M":
+                    print("command is M, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
                     cursor["x"] = float(path.pop(0))
-                    awall.append(cursor["x"])
-                    awall.append(cursor["y"])
-                    walls.append(awall)
-
-                #wall segment from cursor to relative vertical loc
-                elif command == "v":
-                    print("command is v, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
-                    awall.append(cursor["x"])
-                    awall.append(cursor["y"])
-                    cursor["y"] += float(path.pop(0))
-                    awall.append(cursor["x"])
-                    awall.append(cursor["y"])
-                    walls.append(awall)
-
-                #wall segment from cursor to absolute vertical loc
-                elif command == "V":
-                    print("command is V, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
-                    awall.append(cursor["x"])
-                    awall.append(cursor["y"])
                     cursor["y"] = float(path.pop(0))
-                    awall.append(cursor["x"])
-                    awall.append(cursor["y"])
-                    walls.append(awall)
+                    start_coord["x"] = cursor["x"]
+                    start_coord["y"] = cursor["y"]
 
-                else:
-                    print("Error: unknown svg path command: " + command)
 
-        #create a new floorplan and add a path for each wall we've parsed from the svg
-        fp1 = fpdata.fpdata()
-        for wall in walls:
-            print("adding wall with points " + str(wall[0]) + " " + str(wall[1]) + " " + str(wall[2]) + " " + str(wall[3]))
-            fp1.add_path(1, wall[0], wall[1], wall[2], wall[3])
+                while len(path) > 0:
+                    awall = []
+                    command = path.pop(0)
 
-        #add the floorplan and return
-        fp1.normalize()
-        self.add_fp(fp1)
+                    #wall segment from current cursor to start
+                    if (command == "z") or (command == "Z"):
+                        print("command is z, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
+                        awall.append(cursor["x"])
+                        awall.append(cursor["y"])
+                        awall.append(start_coord["x"])
+                        awall.append(start_coord["y"])
+                        walls.append(awall)
 
-        return 0
+                    #wall segment from current cursor to relative location
+                    elif command == "l":
+                        print("command is l, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
+                        awall.append(cursor["x"])
+                        awall.append(cursor["y"])
+                        cursor["x"] += float(path.pop(0))
+                        cursor["y"] += float(path.pop(0))
+                        awall.append(cursor["x"])
+                        awall.append(cursor["y"])
+                        walls.append(awall)
+
+                    #wall segment from current cursor to absolute location
+                    elif command == "L":
+                        print("command is L, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
+                        awall.append(cursor["x"])
+                        awall.append(cursor["y"])
+                        cursor["x"] = float(path.pop(0))
+                        cursor["y"] = float(path.pop(0))
+                        awall.append(cursor["x"])
+                        awall.append(cursor["y"])
+                        walls.append(awall)
+
+                    #wall segment from cursor to relative horizontal loc
+                    elif command == "h":
+                        print("command is h, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
+                        awall.append(cursor["x"])
+                        awall.append(cursor["y"])
+                        cursor["x"] += float(path.pop(0))
+                        awall.append(cursor["x"])
+                        awall.append(cursor["y"])
+                        walls.append(awall)
+
+                    #wall segment from cursor to absolut horizontal loc
+                    elif command == "H":
+                        print("command is H, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
+                        awall.append(cursor["x"])
+                        awall.append(cursor["y"])
+                        cursor["x"] = float(path.pop(0))
+                        awall.append(cursor["x"])
+                        awall.append(cursor["y"])
+                        walls.append(awall)
+
+                    #wall segment from cursor to relative vertical loc
+                    elif command == "v":
+                        print("command is v, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
+                        awall.append(cursor["x"])
+                        awall.append(cursor["y"])
+                        cursor["y"] += float(path.pop(0))
+                        awall.append(cursor["x"])
+                        awall.append(cursor["y"])
+                        walls.append(awall)
+
+                    #wall segment from cursor to absolute vertical loc
+                    elif command == "V":
+                        print("command is V, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
+                        awall.append(cursor["x"])
+                        awall.append(cursor["y"])
+                        cursor["y"] = float(path.pop(0))
+                        awall.append(cursor["x"])
+                        awall.append(cursor["y"])
+                        walls.append(awall)
+
+                    #just a coordinate indicating continuation of 'm' command
+                    #todo extend this to include instances where first command is 'M' and subsequent floats are absolute values
+                    elif is_float(command):
+                        if first_command == "M":
+                            print("command is a float value with M, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
+                            awall.append(cursor["x"])
+                            awall.append(cursor["y"])
+                            cursor["x"] = float(command)
+                            cursor["y"] = float(path.pop(0))
+                            awall.append(cursor["x"])
+                            awall.append(cursor["y"])
+                            walls.append(awall)
+                        elif first_command == "m":
+                            print("command is a float value with m, cursor at " +  str(cursor["x"]) + "," + str(cursor["y"]))
+                            awall.append(cursor["x"])
+                            awall.append(cursor["y"])
+                            cursor["x"] += float(command)
+                            cursor["y"] += float(path.pop(0))
+                            awall.append(cursor["x"])
+                            awall.append(cursor["y"])
+                            walls.append(awall)
+
+                    else:
+                        print("Error: unknown svg path command: " + command)
+
+            #create a new floorplan and add a path for each wall we've parsed from the svg
+            fp1 = fpdata.fpdata()
+            for wall in walls:
+                print("adding wall with points " + str(wall[0]) + " " + str(wall[1]) + " " + str(wall[2]) + " " + str(wall[3]))
+                fp1.add_path(1, wall[0], wall[1], wall[2], wall[3])
+
+            #add the floorplan and return
+            fp1.normalize()
+            self.add_fp(fp1)
+
+        return files_added
 
 
     def import_sample_fp(self, np_array):
@@ -195,11 +251,10 @@ class fpdatamgr:
                 if np_array[i][j][0] > self.wall_threshold:
                     fp1.add_path(1.0, np_array[i][j][1], np_array[i][j][2], np_array[i][j][3], np_array[i][j][4])
 
-
         self.add_sample_fp(fp1)
 
 
-    def export_svg(self, index, filename, source="samples"):
+    def export_svg(self, index, filename, export_dir="./", source="samples"):
         if source == "data":
             target_fp = self.get_data_fp(index)
         else:
@@ -220,8 +275,8 @@ class fpdatamgr:
                               "version": "1.1",
                               "id": "svg8",
                               "inkscape:version": "0.92.0 r",
-                              "sodipodi:docname": filename + ".svg",
-                              "inkscape:export-filename": "./" + filename + ".png",
+                              "sodipodi:docname": filename,
+                              #"inkscape:export-filename": "./" + filename + ".png",
                               "inkscape:export-xdpi": "96",
                               "inkscape:export-ydpi": "96"
                               })
@@ -270,7 +325,8 @@ class fpdatamgr:
                     }))
                 pindex += 1
 
-        with open("./" + filename + ".svg", 'w') as f:
+        filepath = export_dir + filename
+        with open(filepath, 'w') as f:
             f.write(prettify(top))
             f.write("\n")
 
@@ -332,3 +388,13 @@ class fpdatamgr:
             self.add_fp(fp1)
 
         return self.to_numpy_array(0, (size - 1))
+
+
+    def fix_and_export_data(self, export_dir="./"):
+        index = 0
+        for fp in self.fplist:
+            fp.normalize()
+            fp.rescale(32, True)
+            filename = str(index) + ".svg"
+            self.export_svg(index, filename, export_dir, "data")
+            index += 1

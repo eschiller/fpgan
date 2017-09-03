@@ -1,12 +1,14 @@
 # FPGAN
 
-Deps:
+## Dependencies
 
  * xmltodict
  * tensorflow
  * numpy
  * json
  
+
+## Schedule
  
 DATE | TASK
 --- | ---

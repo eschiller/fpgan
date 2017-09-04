@@ -42,7 +42,7 @@ class fpdata:
         '''
         Add single path (either a wall or a door) to the floor plan
 
-        :param type_value: string value. Currently should be either "wall" or "door"
+        :param type_value: int value. Currently should be either 1 for wall or 2 for door
         :param p1x_value: point 1 x-value for path
         :param p1y_value: point 1 y-value for path
         :param p2x_value: point 2 x-value for path

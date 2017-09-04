@@ -93,6 +93,24 @@ class fpdatamgr:
         self.samples.append(fp)
 
 
+    def import_json_file(self, filepath):
+        jsondata = {}
+        with open(filepath) as datafile:
+            jsondata = json.load(datafile)
+
+            print(jsondata)
+
+            for key, jsonfp in jsondata.iteritems():
+                print(jsonfp)
+                fp = fpdata.fpdata()
+                for path in jsonfp:
+                    print(path)
+                    fp.add_path(1, path["p1x"], path["p1y"], path["p2x"], path["p2y"])
+                fp.normalize()
+                self.add_fp(fp)
+
+
+
     def import_svg_file(self, glob_string):
         files_added = 0
 
@@ -331,7 +349,7 @@ class fpdatamgr:
             f.write("\n")
 
 
-    def to_json_file(self, filename="output.json"):
+    def export_json_file(self, filename="output.json"):
         '''
         Outputs all floorplans in the fplist to a well-formatted JSON file
 
@@ -341,7 +359,7 @@ class fpdatamgr:
         fpdict = {}
         for fp in self.fplist:
             fpdict[str(index)] = fp.paths
-            index += 0
+            index += 1
 
         jsonstr =  str(json.dumps(fpdict, sort_keys=True, indent=4, separators=(',', ': ')))
         with open(filename, 'w') as f:

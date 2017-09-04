@@ -37,6 +37,7 @@ class fpdata:
         return str(self.paths)
 
 
+
     def add_path(self, type_value, p1x_value, p1y_value, p2x_value, p2y_value):
         '''
         Add single path (either a wall or a door) to the floor plan

@@ -337,7 +337,13 @@ class fpdatamgr:
 
         :param filename: path of the output file
         '''
-        jsonstr =  str(json.dumps(self.fplist, sort_keys=True, indent=4, separators=(',', ': ')))
+        index = 0
+        fpdict = {}
+        for fp in self.fplist:
+            fpdict[str(index)] = fp.paths
+            index += 0
+
+        jsonstr =  str(json.dumps(fpdict, sort_keys=True, indent=4, separators=(',', ': ')))
         with open(filename, 'w') as f:
             f.write(jsonstr)
             f.write("\n")

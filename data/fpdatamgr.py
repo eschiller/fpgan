@@ -52,7 +52,7 @@ def is_float(s):
 
 
 class fpdatamgr:
-    def __init__(self, np_x_dim=8, np_y_dim=8):
+    def __init__(self, np_x_dim=64, np_y_dim=64):
         self.np_x_dim = np_x_dim
         self.np_y_dim = np_y_dim
         self.fplist = []
@@ -378,7 +378,7 @@ class fpdatamgr:
         '''
         count = end_index - start_index + 1
 
-        ret_mat = np.zeros((count, self.np_x_dim, self.np_y_dim, 5))
+        ret_mat = np.zeros((count, self.np_x_dim, self.np_y_dim, 2))
         i = 0
 
         for mgr_index in range(start_index, end_index):

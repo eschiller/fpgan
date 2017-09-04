@@ -27,7 +27,7 @@ class fpdata:
     '''
     Basic data object for managing a single floorplan
     '''
-    def __init__(self, np_x_dim=8, np_y_dim=8):
+    def __init__(self, np_x_dim=64, np_y_dim=64):
         self.paths = []
         self.np_x_dim = np_x_dim
         self.np_y_dim = np_y_dim
@@ -148,50 +148,60 @@ class fpdata:
     def to_numpy_array(self):
         '''
         Converts and returns a numpy array for the data contained in the fpdata object.
-        NumPy array will be size (self.np_x_dim, self.np_y_dim, 5). This function
+        NumPy array will be size (self.np_x_dim, self.np_y_dim, 2). This function
         arranges data as follows:
-         * y-index is determined by dividing all possible y coordinates by the np_y_dim size,
-         creating a number of y-slices, and putting each path in a slice according to the y-value
-         of it's midpoint
-         * paths in each slice are sorted according to their relative x-midpoint, then
-         are centered and placed according to thier sort location.
+         todo - write out algorithm here
 
         :return: NumPy representation of fpdata object
         '''
-        # init y slots
-        y_cats = [None] * self.np_y_dim
-        for i in range(self.np_y_dim):
-            y_cats[i] = []
 
-        #git slot size so that we can put it in the right y slot
-        slot_size = 1.0 / self.np_y_dim
+        #make the numpy matrix
+        ret_mat = np.zeros((self.np_x_dim, self.np_y_dim, 2))
 
-        #put each path in the correct category
-        for apath in self.paths:
-            slot_index, scratch = divmod(mid_y(apath), slot_size)
-            y_cats[int(slot_index) - 1].append(apath)
+        for path in self.paths:
+            #get midpoint. since this is the midpoint on an 2x sized grid, we don't need to divide by 2
+            #also, we're storing the values internally as 0-1 floats to be better used by the GAN,
+            #but for purposes of the grid placement the values are 0-32 ints. This needs to be
+            #rescaled before minding the "midpoint
+            #todo - I think the -1 is needed to work with array indices, but is this the right approach? I dont know....
+            xmid_rs = round((path['p1x'] + path['p2x']) * (self.np_x_dim / 2 - 1))
+            ymid_rs = round((path['p1y'] + path['p2y']) * (self.np_y_dim / 2 - 1))
 
 
-        #sort each category
-        for i in range(len(y_cats)):
-            for j in range(len(y_cats[i]) - 1):
-                for k in range(len(y_cats[i]) - 1):
-                    if y_cats[i][k] > y_cats[i][k + 1]:
-                        temp = y_cats[i][k]
-                        y_cats[i][k] = y_cats[i][k + 1]
-                        y_cats[i][k + 1] = temp
 
-        #make the numpy matrix and place everything appropriately
-        ret_mat = np.zeros((self.np_x_dim, self.np_y_dim, 5))
-        for i in range(len(y_cats)):
-            offset, _scratch = divmod((self.np_x_dim - len(y_cats[i])), 2)
-            for path in y_cats[i]:
-                ret_mat[offset, i, 0] = path['pathtype']
-                ret_mat[offset, i, 1] = path['p1x']
-                ret_mat[offset, i, 2] = path['p1y']
-                ret_mat[offset, i, 3] = path['p2x']
-                ret_mat[offset, i, 4] = path['p2y']
-                offset += 1
+            #get "lowest point" from path. The rules for lowest are if either
+            #point has a lower y, that is the lowest. If their y's are equal,
+            #take whichever has the lowest x.
+            lowpoint = ""
+            if path['p1y'] < path['p2y']:
+                lowpoint = "p1"
+            elif path['p1y'] > path['p2y']:
+                lowpoint = "p2"
+            #if we get this far, the y's were equal and we're checking x's
+            elif path['p1x'] < path['p2x']:
+                lowpoint = "p1"
+            elif path['p1x'] > path['p2x']:
+                lowpoint = "p2"
+            else:
+                print "ERROR: two points are equal, can't find the lowest."
+                return
+
+            #now we find the points after we've translated the lowest to the
+            #origin, and the higher by and equal amount. Of course, the lowest
+            #after this translation is just the origin, so really, we just need
+            #to find the translated values of the highest
+            transhighx = transhighy = 0
+            if lowpoint == "p1":
+                transhighx = path["p2x"] - path["p1x"]
+                transhighy = path["p2y"] - path["p1y"]
+            elif lowpoint == "p2":
+                transhighx = path["p1x"] - path["p2x"]
+                transhighy = path["p1y"] - path["p2y"]
+
+            #finally, place the translated high point on the grid at the found midpoint
+            ret_mat[int(xmid_rs), int(ymid_rs), 0] = transhighx
+            ret_mat[int(xmid_rs), int(ymid_rs), 1] = transhighy
+
 
         #finally return
         return ret_mat

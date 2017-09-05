@@ -388,6 +388,29 @@ class fpdatamgr:
         return ret_mat
 
 
+
+    def generate_data_set(self, size=100):
+        '''
+        Creates a data set for feeding to a NN (in numpy format) from the
+        available floorplans from the data.
+        :param size:
+        :return:
+        '''
+        #figure out how many floorplans we have and get them all as numpy mats
+        fpcount = len(self.fplist)
+        all_fp_as_np = self.to_numpy_array(0, fpcount - 1)
+
+        #get full matrix
+        ret_mat = np.zeros((size, self.np_x_dim, self.np_y_dim, 2))
+
+        #just cycle through our available fps until we run out of slots to fill
+        for i in range(size):
+            ret_mat[i] = all_fp_as_np[i % fpcount]
+
+        return ret_mat
+
+
+
     def generate_test_set(self, size=100):
 
         fp1 = fpdata.fpdata()

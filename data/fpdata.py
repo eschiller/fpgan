@@ -9,14 +9,17 @@ def mid_y(path):
     return (path["p1y"] + path["p2y"]) / 2.0
 
 
-def np_rescale(npdata, multiplier=160, snap=True):
+def np_rescale(npdata, multiplier=32, snap=True):
     new_mat = np.zeros(npdata.shape)
     for i in range(npdata.shape[0]):
         for j in range(npdata.shape[1]):
             for k in range(npdata.shape[2]):
-                new_mat[i][j][k][0] = npdata[i][j][k][0]
-                for l in range(1, npdata.shape[3]):
-                    new_mat[i][j][k][l] = npdata[i][j][k][l] * multiplier
+                new_mat[i][j][k][0] = npdata[i][j][k][0] * multiplier
+                new_mat[i][j][k][1] = npdata[i][j][k][1] * multiplier
+
+                #new_mat[i][j][k][0] = npdata[i][j][k][0]
+                #for l in range(1, npdata.shape[3]):
+                #    new_mat[i][j][k][l] = npdata[i][j][k][l] * multiplier
     if snap:
         return np.rint(new_mat)
     else:

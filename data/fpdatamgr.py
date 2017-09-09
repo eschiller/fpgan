@@ -272,6 +272,33 @@ class fpdatamgr:
         self.add_sample_fp(fp1)
 
 
+    def import_sample_fp2(self, np_array):
+        '''
+        Takes a numpy array of 64, 64, 2 and changes it in to a fpdata object then adds it to the samples
+        '''
+        fp1 = fpdata.fpdata()
+
+        #iterate through the first two dimensions of the matrix looking for values big enough to
+        #be considered walls
+        for i in range(np.shape(np_array)[0]):
+            for j in range(np.shape(np_array)[1]):
+                if (np_array[i][j][0] > self.wall_threshold) or (np_array[i][j][0] > self.wall_threshold):
+                    #find midpoint
+                    midpoint_x = i / 2
+                    midpoint_y = j / 2
+
+                    #find both x values by  extending past the midpoint one half of the x length, np_array[i][j][0]
+                    p1_x = round(midpoint_x - (np_array[i][j][0] / 2))
+                    p2_x = round(midpoint_x + (np_array[i][j][0] / 2))
+                    p1_y = round(midpoint_y - (np_array[i][j][1] / 2))
+                    p2_y = round(midpoint_y + (np_array[i][j][1] / 2))
+
+                    #add the path we've found to the fpdata object
+                    fp1.add_path(1, p1_x, p1_y, p2_x, p2_y)
+
+        self.add_sample_fp(fp1)
+
+
     def export_svg(self, index, filename, export_dir="./", source="samples"):
         if source == "data":
             target_fp = self.get_data_fp(index)

@@ -18,25 +18,26 @@ class fp_gan_nn:
         self.batch_size = batch_size
         self.train_data_size=train_data_size
         self.datamgr = fpdatamgr()
-        self.fp_data = self.datamgr.generate_svg_test_set("./test/56Leonard_1.svg", self.train_data_size)
+        self.datamgr.import_json_file("./data/json/datafp.json")
+        self.fp_data = self.datamgr.generate_data_set(self.train_data_size)
         #self.fp_data = self.datamgr.generate_test_set(self.train_data_size)
 
-        print(self.fp_data[0])
+        #print(self.fp_data[0])
 
 
         #VARIABLES
         self.w_gn_h1 = tf_utils.weight_var([100, 1024], name="gen_w1")
-        self.w_gn_h2 = tf_utils.weight_var([1024, 128*4*4], name="gen_w2")
+        self.w_gn_h2 = tf_utils.weight_var([1024, 128*64*64], name="gen_w2")
         self.w_gn_h3 = tf_utils.weight_var([5, 5, 64, 128], name="gen_w3")
-        self.w_gn_h4 = tf_utils.weight_var([5, 5, 5, 64])
+        self.w_gn_h4 = tf_utils.weight_var([5, 5, 2, 64])
 
-        self.w_dn_h1 = tf_utils.weight_var([1, 1, 5, 8], name="discrim_w1")
+        self.w_dn_h1 = tf_utils.weight_var([1, 1, 2, 8], name="discrim_w1")
         self.w_dn_h2 = tf_utils.weight_var([5, 5, 8, 16], name="discrim_w1")
-        self.w_dn_h3 = tf_utils.weight_var([16*8*8, 1024])
+        self.w_dn_h3 = tf_utils.weight_var([16*64*64, 1024])
 
         #INPUT PARAMS
         self.noise = tf.placeholder(tf.float32, shape=[self.batch_size, 100])
-        self.real_x = tf.placeholder(tf.float32, shape=[self.batch_size, 8, 8, 5])
+        self.real_x = tf.placeholder(tf.float32, shape=[self.batch_size, 64, 64, 2])
 
         #####
         #COST AND TRAINING
@@ -63,6 +64,7 @@ class fp_gan_nn:
         self.ce_gn = tf.reduce_mean(
             tf.nn.sigmoid_cross_entropy_with_logits(logits=self.raw_gen, labels=tf.ones_like(self.raw_gen)))
 
+        #todo uncomment below
         self.train_step_gn = optimizer(learn_rate_gn, beta1=0.5).minimize(self.ce_gn, var_list=[self.w_gn_h1, self.w_gn_h2, self.w_gn_h3, self.w_gn_h4])
 
         #PREP
@@ -74,7 +76,7 @@ class fp_gan_nn:
 
     def gn(self, Z):
         '''
-        Accept [batch_size, 100] of noise and outputs [batch_size, 8, 8, 5] of generated floorplans
+        Accept [batch_size, 100] of noise and outputs [batch_size, 64,64,2] of generated floorplans
         :param Z:
         :return:
         '''
@@ -85,20 +87,20 @@ class fp_gan_nn:
         h2 = tf.nn.relu(tf.matmul(h1, self.w_gn_h2))
 
         # this will result in [100, 2, 2, 128]
-        h2 = tf.reshape(h2, [self.batch_size,4,4,128])
+        h2 = tf.reshape(h2, [self.batch_size,64,64,128])
 
         #output shape is [100, 4, 4, 64]
-        output_shape_l3 = [self.batch_size,4,4,64]
+        output_shape_l3 = [self.batch_size,64,64,64]
 
-        #[100, 2, 2, 128] with filters of [5, 5, 64, 128] at [1,2,2,1] strides will have output shape of [100,4,4,128] after transpose
+        #[100, 2, 2, 128] with filters of [5, 5, 64, 128] at [1,1,1,1] strides will have output shape of [100,4,4,64] after transpose
         h3 = tf.nn.conv2d_transpose(h2, self.w_gn_h3, output_shape=output_shape_l3, strides=[1,1,1,1])
         h3 = tf.nn.relu(h3)
 
         # output shape is [100, 8, 8, 5]
-        output_shape_l4 = [self.batch_size,8,8,5]
+        output_shape_l4 = [self.batch_size,64,64,2]
 
         #ok, so [100,4,4,128] with filters at [5,5,5,64] and strides [1,2,2,1] will have [100,8,8,5] after transpose
-        h4 = tf.nn.conv2d_transpose(h3, self.w_gn_h4, output_shape=output_shape_l4, strides=[1,2,2,1])
+        h4 = tf.nn.conv2d_transpose(h3, self.w_gn_h4, output_shape=output_shape_l4, strides=[1,1,1,1])
 
         return h4
 
@@ -158,10 +160,12 @@ class fp_gan_nn:
                 self.save_checkpoint(i)
                 print("done with round: " + str(i))
 
-                self.train_gn(check_acc=True)
+                #self.train_gn(check_acc=True)
                 self.train_dn(i, self.batch_size, check_acc=True)
 
             self.train_dn(i)
+
+            #todo uncomment below
             self.train_gn()
 
 
@@ -177,8 +181,8 @@ class fp_gan_nn:
         sample_to_out = rescaled_samples[0]
 
         #uncomment below to get printouts of sample
-        #print(sample_to_out)
+        print(sample_to_out)
 
-        self.datamgr.import_sample_fp(sample_to_out)
-        self.datamgr.export_svg(-1, "./samples/test" + str(reps))
+        self.datamgr.import_sample_fp2(sample_to_out)
+        self.datamgr.export_svg(-1, "./samples/test" + str(reps) + ".svg")
 

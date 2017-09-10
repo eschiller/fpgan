@@ -68,9 +68,9 @@ class fp_gan_nn:
         self.train_step_gn = optimizer(learn_rate_gn, beta1=0.5).minimize(self.ce_gn, var_list=[self.w_gn_h1, self.w_gn_h2, self.w_gn_h3, self.w_gn_h4])
 
         #PREP
-        self.sess = tf.Session()
+        self.sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
         init = tf.global_variables_initializer()
-        self.sess.run(init)
+        print(self.sess.run(init))
 
 
 

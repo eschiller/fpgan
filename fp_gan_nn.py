@@ -160,11 +160,11 @@ class fp_gan_nn:
                 self.save_checkpoint(i)
                 print("done with round: " + str(i))
 
-                self.train_gn(check_acc=True)
+                self.train_gn(self.batch_size, check_acc=True)
                 self.train_dn(i, self.batch_size, check_acc=True)
 
-            self.train_dn(i)
-            self.train_gn()
+            self.train_dn(i, size=self.batch_size)
+            self.train_gn(size=self.batch_size)
 
 
 
@@ -174,7 +174,7 @@ class fp_gan_nn:
 
 
     def save_checkpoint(self, reps):
-        fp_samples = self.generate(100)
+        fp_samples = self.generate(self.batch_size)
         rescaled_samples = fpdata.np_rescale(fp_samples, snap=False)
         sample_to_out = rescaled_samples[0]
 

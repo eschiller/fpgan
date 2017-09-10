@@ -261,18 +261,8 @@ class fpdatamgr:
         return files_added
 
 
+
     def import_sample_fp(self, np_array):
-        fp1 = fpdata.fpdata()
-
-        for i in range(np.shape(np_array)[0]):
-            for j in range(np.shape(np_array)[1]):
-                if np_array[i][j][0] > self.wall_threshold:
-                    fp1.add_path(1.0, np_array[i][j][1], np_array[i][j][2], np_array[i][j][3], np_array[i][j][4])
-
-        self.add_sample_fp(fp1)
-
-
-    def import_sample_fp2(self, np_array):
         '''
         Takes a numpy array of 64, 64, 2 and changes it in to a fpdata object then adds it to the samples
         '''
@@ -441,11 +431,11 @@ class fpdatamgr:
     def generate_test_set(self, size=100):
 
         fp1 = fpdata.fpdata()
-        fp1.add_path(1, 30.0, 30.0, 30.0, 130.0)
-        fp1.add_path(1, 30.0, 130.0, 130.0, 130.0)
-        fp1.add_path(1, 130.0, 130.0, 130.0, 30.0)
-        fp1.add_path(1, 130.0, 30.0, 30.0, 30.0)
-        fp1.add_path(1, 80.0, 30.0, 80.0, 130.0)
+        fp1.add_path(1, 6.0, 6.0, 6.0, 26.0)
+        fp1.add_path(1, 6.0, 26.0, 26.0, 26.0)
+        fp1.add_path(1, 26.0, 26.0, 26.0, 6.0)
+        fp1.add_path(1, 26.0, 6.0, 6.0, 6.0)
+        fp1.add_path(1, 16.0, 6.0, 16.0, 26.0)
         fp1.normalize()
         for i in range(size):
             self.add_fp(fp1)

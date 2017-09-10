@@ -20,10 +20,9 @@ class fp_gan_nn:
         self.datamgr = fpdatamgr()
         self.datamgr.import_json_file("./data/json/datafp.json")
         self.fp_data = self.datamgr.generate_data_set(self.train_data_size)
+
+        #uncomment to use a simple single floorplan for entire dataset
         #self.fp_data = self.datamgr.generate_test_set(self.train_data_size)
-
-        #print(self.fp_data[0])
-
 
         #VARIABLES
         self.w_gn_h1 = tf_utils.weight_var([100, 1024], name="gen_w1")
@@ -80,26 +79,26 @@ class fp_gan_nn:
         :param Z:
         :return:
         '''
-        # matmul [100, 100] * [100, 1024], resulting in [100, 1024]
+        # matmul [100,100] * [100,1024], resulting in [100,1024]
         h1 = tf.nn.relu(tf.matmul(Z, self.w_gn_h1))
 
-        #gen_W2 is [100, 1024] * [1024, 512] resulting in [100, 512 (128 * 2 * 2)]
+        #gen_W2 is [100,1024] * [1024,524288] resulting in [100,524288 (128 * 2 * 2)]
         h2 = tf.nn.relu(tf.matmul(h1, self.w_gn_h2))
 
-        # this will result in [100, 2, 2, 128]
+        # this will result in [100,64,64,128]
         h2 = tf.reshape(h2, [self.batch_size,64,64,128])
 
-        #output shape is [100, 4, 4, 64]
+        #output shape is [100,64,64,64]
         output_shape_l3 = [self.batch_size,64,64,64]
 
-        #[100, 2, 2, 128] with filters of [5, 5, 64, 128] at [1,1,1,1] strides will have output shape of [100,4,4,64] after transpose
+        #[100,64,64,128] with filters of [5,5,64,128] at [1,1,1,1] strides will have output shape of [100,64,64,64] after transpose
         h3 = tf.nn.conv2d_transpose(h2, self.w_gn_h3, output_shape=output_shape_l3, strides=[1,1,1,1])
         h3 = tf.nn.relu(h3)
 
-        # output shape is [100, 8, 8, 5]
+        # output shape is [100,64,64,2]
         output_shape_l4 = [self.batch_size,64,64,2]
 
-        #ok, so [100,4,4,128] with filters at [5,5,5,64] and strides [1,2,2,1] will have [100,8,8,5] after transpose
+        #[100,64,64,64] with filters at [5,5,2,64] and strides [1,1,1,1] will have [100,64,64,2] after transpose
         h4 = tf.nn.conv2d_transpose(h3, self.w_gn_h4, output_shape=output_shape_l4, strides=[1,1,1,1])
 
         return h4
@@ -108,20 +107,20 @@ class fp_gan_nn:
 
     def dn(self, fpdata):
         '''
-        Accept [batch_size, 8, 8, 5] and outputs [batch_size, 1024]. The 1024 is the classification
+        Accept [batch_size, 8, 8, 2] and outputs [batch_size, 1024]. The 1024 is the classification
         :param fpdata:
         :return:
         '''
-        # [100, 8, 8, 5] with filters [5, 5, 5, 8] gonna output [100, 8, 8, 8]
+        # [100, 64, 64, 2] with filters [1,1,2,8] will output [100, 64, 64, 8]
         h1 = tf.nn.relu( tf.nn.conv2d( fpdata, self.w_dn_h1, strides=[1,1,1,1], padding='SAME' ))
 
-        #conv2d([100, 8, 8, 8] with filters [5, 5, 8, 16]) = [100, 8, 8, 16]
+        #conv2d([100, 64, 64, 8] with filters [5, 5, 8, 16]) = [100, 64, 64, 16]
         h2 = tf.nn.relu( tf.nn.conv2d( h1, self.w_dn_h2, strides=[1,1,1,1], padding='SAME') )
 
-        #reshape for [100, 8*8*16]
+        #reshape for [100, 64*64*16]
         h2 = tf.reshape(h2, [self.batch_size, -1])
 
-        #[100, 8*8*16] * [8*8*16, 1024] = [100, 1024]
+        #[100, 64*64*16] * [64*64*16, 1024] = [100, 1024]
         h3 = tf.nn.relu(tf.matmul(h2, self.w_dn_h3))
 
         #returns [100, 1024]
@@ -160,12 +159,10 @@ class fp_gan_nn:
                 self.save_checkpoint(i)
                 print("done with round: " + str(i))
 
-                #self.train_gn(check_acc=True)
+                self.train_gn(check_acc=True)
                 self.train_dn(i, self.batch_size, check_acc=True)
 
             self.train_dn(i)
-
-            #todo uncomment below
             self.train_gn()
 
 
@@ -183,6 +180,6 @@ class fp_gan_nn:
         #uncomment below to get printouts of sample
         print(sample_to_out)
 
-        self.datamgr.import_sample_fp2(sample_to_out)
+        self.datamgr.import_sample_fp(sample_to_out)
         self.datamgr.export_svg(-1, "./samples/test" + str(reps) + ".svg")
 

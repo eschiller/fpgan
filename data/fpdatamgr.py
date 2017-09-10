@@ -52,7 +52,8 @@ def is_float(s):
 
 
 class fpdatamgr:
-    def __init__(self, np_x_dim=64, np_y_dim=64):
+    def __init__(self, np_x_dim=64, np_y_dim=64, debug=False):
+        self.debug = debug
         self.np_x_dim = np_x_dim
         self.np_y_dim = np_y_dim
         self.fplist = []
@@ -98,13 +99,19 @@ class fpdatamgr:
         with open(filepath) as datafile:
             jsondata = json.load(datafile)
 
-            print(jsondata)
+            #if self.debug == True:
+            #    print("In import_json_file. jsondata is:")
+            #    print(jsondata)
 
             for key, jsonfp in jsondata.iteritems():
-                print(jsonfp)
+                if self.debug == True:
+                    print("In import_json_file. jsonfp is:")
+                    print(jsonfp)
                 fp = fpdata.fpdata()
                 for path in jsonfp:
-                    print(path)
+                    if self.debug == True:
+                        print("In import_json_file. path is:")
+                        print(path)
                     fp.add_path(1, path["p1x"], path["p1y"], path["p2x"], path["p2y"])
                 fp.normalize()
                 self.add_fp(fp)
@@ -127,21 +134,27 @@ class fpdatamgr:
                 path_arrays.append(re.split('[\s,]', path))
 
             for path in path_arrays:
-                print("full path is " + str(path))
-                print("starting a path")
+                if self.debug == True:
+                    print("full path is " + str(path))
+                    print("starting a path")
                 #get starting coordinates to handle z command
                 start_coord = {"x": 0.0, "y": 0.0}
                 first_command = path.pop(0)
-                print("first command is " + first_command)
+
+                if self.debug == True:
+                    print("first command is " + first_command)
+
                 if first_command == "m":
-                    print("command is m, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
+                    if self.debug == True:
+                        print("command is m, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
 
                     cursor["x"] = float(path.pop(0))
                     cursor["y"] = float(path.pop(0))
                     start_coord["x"] = cursor["x"]
                     start_coord["y"] = cursor["y"]
                 if first_command == "M":
-                    print("command is M, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
+                    if self.debug == True:
+                        print("command is M, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
                     cursor["x"] = float(path.pop(0))
                     cursor["y"] = float(path.pop(0))
                     start_coord["x"] = cursor["x"]
@@ -154,7 +167,8 @@ class fpdatamgr:
 
                     #wall segment from current cursor to start
                     if (command == "z") or (command == "Z"):
-                        print("command is z, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
+                        if self.debug == True:
+                            print("command is z, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
                         awall.append(cursor["x"])
                         awall.append(cursor["y"])
                         awall.append(start_coord["x"])
@@ -163,7 +177,8 @@ class fpdatamgr:
 
                     #wall segment from current cursor to relative location
                     elif command == "l":
-                        print("command is l, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
+                        if self.debug == True:
+                            print("command is l, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
                         awall.append(cursor["x"])
                         awall.append(cursor["y"])
                         cursor["x"] += float(path.pop(0))
@@ -174,7 +189,8 @@ class fpdatamgr:
 
                     #wall segment from current cursor to absolute location
                     elif command == "L":
-                        print("command is L, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
+                        if self.debug == True:
+                            print("command is L, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
                         awall.append(cursor["x"])
                         awall.append(cursor["y"])
                         cursor["x"] = float(path.pop(0))
@@ -185,7 +201,8 @@ class fpdatamgr:
 
                     #wall segment from cursor to relative horizontal loc
                     elif command == "h":
-                        print("command is h, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
+                        if self.debug == True:
+                            print("command is h, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
                         awall.append(cursor["x"])
                         awall.append(cursor["y"])
                         cursor["x"] += float(path.pop(0))
@@ -195,7 +212,8 @@ class fpdatamgr:
 
                     #wall segment from cursor to absolut horizontal loc
                     elif command == "H":
-                        print("command is H, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
+                        if self.debug == True:
+                            print("command is H, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
                         awall.append(cursor["x"])
                         awall.append(cursor["y"])
                         cursor["x"] = float(path.pop(0))
@@ -205,7 +223,8 @@ class fpdatamgr:
 
                     #wall segment from cursor to relative vertical loc
                     elif command == "v":
-                        print("command is v, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
+                        if self.debug == True:
+                            print("command is v, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
                         awall.append(cursor["x"])
                         awall.append(cursor["y"])
                         cursor["y"] += float(path.pop(0))
@@ -215,7 +234,8 @@ class fpdatamgr:
 
                     #wall segment from cursor to absolute vertical loc
                     elif command == "V":
-                        print("command is V, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
+                        if self.debug == True:
+                            print("command is V, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
                         awall.append(cursor["x"])
                         awall.append(cursor["y"])
                         cursor["y"] = float(path.pop(0))
@@ -227,7 +247,8 @@ class fpdatamgr:
                     #todo extend this to include instances where first command is 'M' and subsequent floats are absolute values
                     elif is_float(command):
                         if first_command == "M":
-                            print("command is a float value with M, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
+                            if self.debug == True:
+                                print("command is a float value with M, cursor at " + str(cursor["x"]) + "," + str(cursor["y"]))
                             awall.append(cursor["x"])
                             awall.append(cursor["y"])
                             cursor["x"] = float(command)
@@ -236,7 +257,8 @@ class fpdatamgr:
                             awall.append(cursor["y"])
                             walls.append(awall)
                         elif first_command == "m":
-                            print("command is a float value with m, cursor at " +  str(cursor["x"]) + "," + str(cursor["y"]))
+                            if self.debug == True:
+                                print("command is a float value with m, cursor at " +  str(cursor["x"]) + "," + str(cursor["y"]))
                             awall.append(cursor["x"])
                             awall.append(cursor["y"])
                             cursor["x"] += float(command)
@@ -251,7 +273,8 @@ class fpdatamgr:
             #create a new floorplan and add a path for each wall we've parsed from the svg
             fp1 = fpdata.fpdata()
             for wall in walls:
-                print("adding wall with points " + str(wall[0]) + " " + str(wall[1]) + " " + str(wall[2]) + " " + str(wall[3]))
+                if self.debug == True:
+                    print("adding wall with points " + str(wall[0]) + " " + str(wall[1]) + " " + str(wall[2]) + " " + str(wall[3]))
                 fp1.add_path(1, wall[0], wall[1], wall[2], wall[3])
 
             #add the floorplan and return
@@ -445,7 +468,8 @@ class fpdatamgr:
 
     def generate_svg_test_set(self, path_name, size):
         self.import_svg_file(path_name)
-        print(self.get_data_fp(-1))
+        if self.debug == True:
+            print(self.get_data_fp(-1))
         fp1 = self.get_data_fp(-1)
 
         for i in range(size):

@@ -10,7 +10,8 @@ import tf_utils
 
 
 class fp_gan_nn:
-    def __init__(self, batch_size=100, learn_rate_dn=0.0001, learn_rate_gn=0.0001, train_data_size=20000, optimizer=tf.train.AdamOptimizer):
+    def __init__(self, batch_size=100, learn_rate_dn=0.0001, learn_rate_gn=0.0001, train_data_size=20000, optimizer=tf.train.AdamOptimizer, debug=False):
+        self.debug = debug
         #make sure printing numpy arrays is in full
         np.set_printoptions(threshold=np.nan)
 
@@ -68,7 +69,7 @@ class fp_gan_nn:
 
         #PREP
         self.sess = tf.Session()
-        init = tf.initialize_all_variables()
+        init = tf.global_variables_initializer()
         self.sess.run(init)
 
 
@@ -178,7 +179,8 @@ class fp_gan_nn:
         sample_to_out = rescaled_samples[0]
 
         #uncomment below to get printouts of sample
-        print(sample_to_out)
+        if self.debug == True:
+            print(sample_to_out)
 
         self.datamgr.import_sample_fp(sample_to_out)
         self.datamgr.export_svg(-1, "./samples/test" + str(reps) + ".svg")

@@ -18,22 +18,22 @@ class fp_gan_nn:
         #initialize some vars
         self.batch_size = batch_size
         self.train_data_size=train_data_size
-        self.datamgr = fpdatamgr()
+        self.datamgr = fpdatamgr(debug=self.debug)
         self.datamgr.import_json_file("./data/json/datafp.json")
-        self.fp_data = self.datamgr.generate_data_set(self.train_data_size)
+        #self.fp_data = self.datamgr.generate_data_set(self.train_data_size)
 
         #uncomment to use a simple single floorplan for entire dataset
-        #self.fp_data = self.datamgr.generate_test_set(self.train_data_size)
+        self.fp_data = self.datamgr.generate_test_set(self.train_data_size)
 
         #VARIABLES
-        self.w_gn_h1 = tf_utils.weight_var([100, 1024], name="gen_w1")
-        self.w_gn_h2 = tf_utils.weight_var([1024, 128*64*64], name="gen_w2")
-        self.w_gn_h3 = tf_utils.weight_var([5, 5, 64, 128], name="gen_w3")
-        self.w_gn_h4 = tf_utils.weight_var([5, 5, 2, 64])
+        self.w_gn_h1 = tf_utils.weight_var([100, 128], name="gen_w1")
+        self.w_gn_h2 = tf_utils.weight_var([128, 128*64*64], name="gen_w2")
+        self.w_gn_h3 = tf_utils.weight_var([1, 1, 128, 32], name="gen_w3")
+        self.w_gn_h4 = tf_utils.weight_var([1, 1, 2, 128])
 
         self.w_dn_h1 = tf_utils.weight_var([1, 1, 2, 8], name="discrim_w1")
-        self.w_dn_h2 = tf_utils.weight_var([5, 5, 8, 16], name="discrim_w1")
-        self.w_dn_h3 = tf_utils.weight_var([16*64*64, 1024])
+        self.w_dn_h2 = tf_utils.weight_var([33, 33, 8, 16], name="discrim_w1")
+        self.w_dn_h3 = tf_utils.weight_var([8*64*64, 1024])
 
         #INPUT PARAMS
         self.noise = tf.placeholder(tf.float32, shape=[self.batch_size, 100])
@@ -90,17 +90,17 @@ class fp_gan_nn:
         h2 = tf.reshape(h2, [self.batch_size,64,64,128])
 
         #output shape is [100,64,64,64]
-        output_shape_l3 = [self.batch_size,64,64,64]
+        #output_shape_l3 = [self.batch_size,64,64,64]
 
         #[100,64,64,128] with filters of [5,5,64,128] at [1,1,1,1] strides will have output shape of [100,64,64,64] after transpose
-        h3 = tf.nn.conv2d_transpose(h2, self.w_gn_h3, output_shape=output_shape_l3, strides=[1,1,1,1])
-        h3 = tf.nn.relu(h3)
+        #h3 = tf.nn.conv2d_transpose(h2, self.w_gn_h3, output_shape=output_shape_l3, strides=[1,1,1,1])
+        #h3 = tf.nn.relu(h3)
 
         # output shape is [100,64,64,2]
         output_shape_l4 = [self.batch_size,64,64,2]
 
         #[100,64,64,64] with filters at [5,5,2,64] and strides [1,1,1,1] will have [100,64,64,2] after transpose
-        h4 = tf.nn.conv2d_transpose(h3, self.w_gn_h4, output_shape=output_shape_l4, strides=[1,1,1,1])
+        h4 = tf.nn.conv2d_transpose(h2, self.w_gn_h4, output_shape=output_shape_l4, strides=[1,1,1,1])
 
         return h4
 
@@ -116,10 +116,10 @@ class fp_gan_nn:
         h1 = tf.nn.relu( tf.nn.conv2d( fpdata, self.w_dn_h1, strides=[1,1,1,1], padding='SAME' ))
 
         #conv2d([100, 64, 64, 8] with filters [5, 5, 8, 16]) = [100, 64, 64, 16]
-        h2 = tf.nn.relu( tf.nn.conv2d( h1, self.w_dn_h2, strides=[1,1,1,1], padding='SAME') )
+        #h2 = tf.nn.relu( tf.nn.conv2d( h1, self.w_dn_h2, strides=[1,1,1,1], padding='SAME') )
 
         #reshape for [100, 64*64*16]
-        h2 = tf.reshape(h2, [self.batch_size, -1])
+        h2 = tf.reshape(h1, [self.batch_size, -1])
 
         #[100, 64*64*16] * [64*64*16, 1024] = [100, 1024]
         h3 = tf.nn.relu(tf.matmul(h2, self.w_dn_h3))

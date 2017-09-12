@@ -28,11 +28,11 @@ class fp_gan_nn:
         #VARIABLES
         self.w_gn_h1 = tf_utils.weight_var([100, 1024], name="gen_w1")
         self.w_gn_h2 = tf_utils.weight_var([1024, 128*64*64], name="gen_w2")
-        self.w_gn_h3 = tf_utils.weight_var([5, 5, 64, 128], name="gen_w3")
+        self.w_gn_h3 = tf_utils.weight_var([33, 33, 64, 128], name="gen_w3")
         self.w_gn_h4 = tf_utils.weight_var([5, 5, 2, 64])
 
         self.w_dn_h1 = tf_utils.weight_var([1, 1, 2, 8], name="discrim_w1")
-        self.w_dn_h2 = tf_utils.weight_var([5, 5, 8, 16], name="discrim_w1")
+        self.w_dn_h2 = tf_utils.weight_var([33, 33, 8, 16], name="discrim_w1")
         self.w_dn_h3 = tf_utils.weight_var([16*64*64, 1024])
 
         #INPUT PARAMS

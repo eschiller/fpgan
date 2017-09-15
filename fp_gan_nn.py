@@ -14,11 +14,15 @@ class fp_gan_nn:
                  batch_size=100,
                  learn_rate_dn=0.0001,
                  learn_rate_gn=0.0001,
+                 np_x_dim=64,
+                 np_y_dim=64,
                  train_data_size=20000,
                  optimizer=tf.train.AdamOptimizer,
                  sample_label="test",
                  debug=False):
 
+        self.np_x_dim = np_x_dim
+        self.np_y_dim = np_y_dim
         self.debug = debug
         self.sample_label = sample_label
         #make sure printing numpy arrays is in full
@@ -27,7 +31,7 @@ class fp_gan_nn:
         #initialize some vars
         self.batch_size = batch_size
         self.train_data_size=train_data_size
-        self.datamgr = fpdatamgr()
+        self.datamgr = fpdatamgr(np_x_dim=self.np_x_dim, np_y_dim=self.np_y_dim)
         self.datamgr.import_json_file("./data/json/datafp.json")
         self.fp_data = self.datamgr.generate_data_set(self.train_data_size)
 
@@ -36,17 +40,17 @@ class fp_gan_nn:
 
         #VARIABLES
         self.w_gn_h1 = tf_utils.weight_var([100, 1024], name="gen_w1")
-        self.w_gn_h2 = tf_utils.weight_var([1024, 128*64*64], name="gen_w2")
+        self.w_gn_h2 = tf_utils.weight_var([1024, 128 * self.np_x_dim * self.np_y_dim], name="gen_w2")
         self.w_gn_h3 = tf_utils.weight_var([5, 5, 64, 128], name="gen_w3")
         self.w_gn_h4 = tf_utils.weight_var([5, 5, 2, 64])
 
         self.w_dn_h1 = tf_utils.weight_var([1, 1, 2, 8], name="discrim_w1")
         self.w_dn_h2 = tf_utils.weight_var([5, 5, 8, 16], name="discrim_w1")
-        self.w_dn_h3 = tf_utils.weight_var([16*64*64, 1024])
+        self.w_dn_h3 = tf_utils.weight_var([16 * self.np_x_dim * self.np_y_dim, 1024])
 
         #INPUT PARAMS
         self.noise = tf.placeholder(tf.float32, shape=[self.batch_size, 100])
-        self.real_x = tf.placeholder(tf.float32, shape=[self.batch_size, 64, 64, 2])
+        self.real_x = tf.placeholder(tf.float32, shape=[self.batch_size, self.np_x_dim, self.np_y_dim, 2])
 
         #####
         #COST AND TRAINING
@@ -85,7 +89,7 @@ class fp_gan_nn:
 
     def gn(self, Z):
         '''
-        Accept [batch_size, 100] of noise and outputs [batch_size, 64,64,2] of generated floorplans
+        Accept [batch_size, 100] of noise and outputs [batch_size, self.np_x_dim, self.np_y_dim, 2] of generated floorplans
         :param Z:
         :return:
         '''
@@ -95,20 +99,22 @@ class fp_gan_nn:
         #gen_W2 is [100,1024] * [1024,524288] resulting in [100,524288 (128 * 2 * 2)]
         h2 = tf.nn.relu(tf.matmul(h1, self.w_gn_h2))
 
-        # this will result in [100,64,64,128]
-        h2 = tf.reshape(h2, [self.batch_size,64,64,128])
+        # this will result in [100,self.np_x_dim,self.np_y_dim,128]
+        h2 = tf.reshape(h2, [self.batch_size,self.np_x_dim,self.np_y_dim,128])
 
-        #output shape is [100,64,64,64]
-        output_shape_l3 = [self.batch_size,64,64,64]
+        #output shape is [100,self.np_x_dim,self.np_y_dim,64]
+        output_shape_l3 = [self.batch_size,self.np_x_dim,self.np_y_dim,64]
 
-        #[100,64,64,128] with filters of [5,5,64,128] at [1,1,1,1] strides will have output shape of [100,64,64,64] after transpose
+        #[100,self.np_x_dim,self.np_y_dim,128] with filters of [5,5,64,128] at [1,1,1,1] strides
+        #will have output shape of [100,self.np_x_dim,self.np_y_dim,64] after transpose
         h3 = tf.nn.conv2d_transpose(h2, self.w_gn_h3, output_shape=output_shape_l3, strides=[1,1,1,1])
         h3 = tf.nn.relu(h3)
 
-        # output shape is [100,64,64,2]
-        output_shape_l4 = [self.batch_size,64,64,2]
+        # output shape is [100,self.np_x_dim,self.np_y_dim,2]
+        output_shape_l4 = [self.batch_size,self.np_x_dim,self.np_y_dim,2]
 
-        #[100,64,64,64] with filters at [5,5,2,64] and strides [1,1,1,1] will have [100,64,64,2] after transpose
+        #[100,self.np_x_dim,self.np_y_dim,64] with filters at [5,5,2,64] and strides [1,1,1,1]
+        #will have [100,self.np_x_dim,self.np_y_dim,2] after transpose
         h4 = tf.nn.conv2d_transpose(h3, self.w_gn_h4, output_shape=output_shape_l4, strides=[1,1,1,1])
 
         return h4
@@ -117,20 +123,20 @@ class fp_gan_nn:
 
     def dn(self, fpdata):
         '''
-        Accept [batch_size, 8, 8, 2] and outputs [batch_size, 1024]. The 1024 is the classification
+        Accept [batch_size, self.np_x_dim, self.np_y_dim, 2] and outputs [batch_size, 1024]. The 1024 is the classification
         :param fpdata:
         :return:
         '''
-        # [100, 64, 64, 2] with filters [1,1,2,8] will output [100, 64, 64, 8]
+        # [100, self.np_x_dim, self.np_y_dim, 2] with filters [1,1,2,8] will output [100, self.np_x_dim, self.np_y_dim, 8]
         h1 = tf.nn.relu( tf.nn.conv2d( fpdata, self.w_dn_h1, strides=[1,1,1,1], padding='SAME' ))
 
-        #conv2d([100, 64, 64, 8] with filters [5, 5, 8, 16]) = [100, 64, 64, 16]
+        #conv2d([100, self.np_x_dim, self.np_y_dim, 8] with filters [5, 5, 8, 16]) = [100, self.np_x_dim, self.np_y_dim, 16]
         h2 = tf.nn.relu( tf.nn.conv2d( h1, self.w_dn_h2, strides=[1,1,1,1], padding='SAME') )
 
-        #reshape for [100, 64*64*16]
+        #reshape for [100, self.np_x_dim * self.np_y_dim * 16]
         h2 = tf.reshape(h2, [self.batch_size, -1])
 
-        #[100, 64*64*16] * [64*64*16, 1024] = [100, 1024]
+        #[100, self.np_x_dim * self.np_y_dim * 16] * [self.np_x_dim * self.np_y_dim * 16, 1024] = [100, 1024]
         h3 = tf.nn.relu(tf.matmul(h2, self.w_dn_h3))
 
         #returns [100, 1024]

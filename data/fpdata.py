@@ -162,9 +162,18 @@ class fpdata:
             #also, we're storing the values internally as 0-1 floats to be better used by the GAN,
             #but for purposes of the grid placement the values are 0-32 ints. This needs to be
             #rescaled before minding the "midpoint
-            #todo - I think the -1 is needed to work with array indices, but is this the right approach? I dont know....
-            xmid_rs = round((path['p1x'] + path['p2x']) * (self.np_x_dim / 2 - 1))
-            ymid_rs = round((path['p1y'] + path['p2y']) * (self.np_y_dim / 2 - 1))
+            #
+            #Note, there's a bit of a fencepost problem here. The vector drawings are scales like 0 - 64,
+            #which actually contains 65 integer values, but we want to keep indices even (ideally some 2^x)
+            #I'm usuing a hacky solution to just combine the first and second indicies by saying if it's
+            # < 0, make it 0.
+            xmid_rs = round((path['p1x'] + path['p2x']) * (self.np_x_dim / 2)) - 1
+            ymid_rs = round((path['p1y'] + path['p2y']) * (self.np_y_dim / 2)) - 1
+
+            if xmid_rs < 0:
+                xmid_rs = 0
+            if ymid_rs < 0:
+                ymid_rs = 0
 
 
 
@@ -200,6 +209,8 @@ class fpdata:
             #finally, place the translated high point on the grid at the found midpoint
             ret_mat[int(xmid_rs), int(ymid_rs), 0] = transhighx
             ret_mat[int(xmid_rs), int(ymid_rs), 1] = transhighy
+
+            #print("Converting path " + str(path['p1x']) + "," + str(path['p1y']) + "; " + str(path['p2x']) + "," + str(path['p2y']) + " to a " + str(transhighx) + "," + str(transhighy) + " vec at loc" + str(xmid_rs) + "," + str(ymid_rs))
 
 
         #finally return

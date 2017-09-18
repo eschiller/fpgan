@@ -33,10 +33,17 @@ class fp_gan_nn:
         self.train_data_size=train_data_size
         self.datamgr = fpdatamgr(np_x_dim=self.np_x_dim, np_y_dim=self.np_y_dim)
         self.datamgr.import_json_file("./data/json/datafp.json")
-        self.fp_data = self.datamgr.generate_data_set(self.train_data_size)
 
-        #uncomment to use a simple single floorplan for entire dataset
+        #uncomment to use the "real" dataset from the json file
+        #self.datamgr.import_json_file("./data/json/datafp.json")
+        #self.fp_data = self.datamgr.generate_data_set(self.train_data_size)
+
+        #uncomment to use test floorplan (square with line through it) for entire dataset
         #self.fp_data = self.datamgr.generate_test_set(self.train_data_size)
+        
+        #uncomment to use a simple single floorplan for entire dataset
+        self.fp_data = self.datamgr.generate_svg_test_set("./data/vec/3.svg", 2000000)
+
 
         #VARIABLES
         self.w_gn_h1 = tf_utils.weight_var([100, 1024], name="gen_w1")

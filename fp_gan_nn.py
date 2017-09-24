@@ -42,7 +42,7 @@ class fp_gan_nn:
         #self.fp_data = self.datamgr.generate_test_set(self.train_data_size)
         
         #uncomment to use a simple single floorplan for entire dataset
-        self.fp_data = self.datamgr.generate_svg_test_set("./data/vec/3.svg", 2000000)
+        self.fp_data = self.datamgr.generate_svg_test_set("./data/vec/3.svg", 200000)
 
 
         #VARIABLES
@@ -64,13 +64,14 @@ class fp_gan_nn:
         #####
 
         #GN COST/TRAINING
-
-        self.gen_y = self.gn(self.noise)
-        self.gen_y_sig = tf.nn.sigmoid(self.gen_y)
         self.raw_real = self.dn(self.real_x)
-        self.p_real = tf.nn.sigmoid(self.raw_real)
+
+        #not used
+        #self.p_real = tf.nn.sigmoid(self.raw_real)
 
         #todo you could try not running gen_y through sigmoid
+        self.gen_y = self.gn(self.noise)
+        self.gen_y_sig = tf.nn.sigmoid(self.gen_y)
         self.raw_gen = self.dn(self.gen_y_sig)
         self.p_gen = tf.nn.sigmoid(self.raw_gen)
 
@@ -81,8 +82,7 @@ class fp_gan_nn:
         self.ce_dn = self.ce_dn_real + self.ce_dn_gen
         self.train_step_dn = optimizer(learn_rate_dn, beta1=0.5).minimize(self.ce_dn,var_list=[self.w_dn_h1, self.w_dn_h2, self.w_dn_h3])
 
-        self.ce_gn = tf.reduce_mean(
-            tf.nn.sigmoid_cross_entropy_with_logits(logits=self.raw_gen, labels=tf.ones_like(self.raw_gen)))
+        self.ce_gn = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.raw_gen, labels=tf.ones_like(self.raw_gen)))
 
         #todo uncomment below
         self.train_step_gn = optimizer(learn_rate_gn, beta1=0.5).minimize(self.ce_gn, var_list=[self.w_gn_h1, self.w_gn_h2, self.w_gn_h3, self.w_gn_h4])
@@ -103,7 +103,7 @@ class fp_gan_nn:
         # matmul [100,100] * [100,1024], resulting in [100,1024]
         h1 = tf.nn.relu(tf.matmul(Z, self.w_gn_h1))
 
-        #gen_W2 is [100,1024] * [1024,524288] resulting in [100,524288 (128 * 2 * 2)]
+        #gen_W2 is [100,1024] * [1024,524288] resulting in [100,(128 * np_x_dim * np_y_dim)]
         h2 = tf.nn.relu(tf.matmul(h1, self.w_gn_h2))
 
         # this will result in [100,self.np_x_dim,self.np_y_dim,128]
@@ -152,6 +152,15 @@ class fp_gan_nn:
 
 
     def train_gn(self, size=100, check_acc=False):
+        '''
+        Trains the GN with a batch of the passed size, first generating noise
+        to feed the GN, generating floorplans, then feeding those to the dn and
+        checking for accuracy.
+
+        :param size:
+        :param check_acc:
+        :return:
+        '''
         feed_noise = np.random.uniform(-1, 1, size=[size, 100]).astype(np.float32)
 
         if check_acc:
@@ -162,6 +171,15 @@ class fp_gan_nn:
 
 
     def train_dn(self, rep, size=100, check_acc=False):
+        '''
+        Trains the DN with a combination of generator network data and dataset
+        data.
+
+        :param rep:
+        :param size:
+        :param check_acc:
+        :return:
+        '''
         feed_noise = np.random.uniform(-1, 1, size=[size, 100]).astype(np.float32)
 
         #If we're going to go past the size of the training data, we'll loop back to the beginning with a modulus op
@@ -176,6 +194,12 @@ class fp_gan_nn:
 
 
     def train_all(self, reps=1000):
+        '''
+        wrapper around train_dn and train_gn. Will force accuracy check and
+        save a sample every 10 reps.
+        :param reps:
+        :return:
+        '''
         for i in range(reps):
             _, dont_save = divmod(i, 10)
             if not dont_save:
@@ -191,6 +215,12 @@ class fp_gan_nn:
 
 
     def generate(self, size=100):
+        '''
+        Generates sample data from noise via the generator network.
+
+        :param size:
+        :return:
+        '''
         feed_noise = np.random.uniform(-1, 1, size=[size, 100]).astype(np.float32)
         return self.sess.run(self.gen_y_sig, feed_dict={self.noise: feed_noise})
 

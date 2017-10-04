@@ -446,7 +446,9 @@ class fpdatamgr:
         ret_mat = np.zeros((count, self.np_x_dim, self.np_y_dim, 2))
         i = 0
 
+        print ("in to_numpy_array")
         for mgr_index in range(start_index, end_index):
+            print ("index is " + str(mgr_index))
             ret_mat[i] = self.fplist[mgr_index].to_numpy_array()
             i += 1
 
@@ -503,11 +505,13 @@ class fpdatamgr:
         return self.to_numpy_array(0, (size - 1))
 
 
+
     def fix_and_export_data(self, export_dir="./"):
         index = 0
         for fp in self.fplist:
             fp.normalize()
             fp.rescale(32, True)
+            fp.remove_point_paths()
             filename = str(index) + ".svg"
             self.export_svg(index, filename, export_dir, "data")
             index += 1

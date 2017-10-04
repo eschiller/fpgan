@@ -80,6 +80,18 @@ class fpdata:
                 path["p2y"] = round(path["p2y"])
 
 
+    def remove_point_paths(self):
+        '''
+        removes any paths where both points are identical
+        '''
+        for path in self.paths:
+            if path["p1x"] == path["p2x"]:
+                if path["p1y"] == path["p2y"]:
+                    print("removing path")
+                    print(path)
+                    self.paths.remove(path)
+
+
     def normalize(self):
         '''
         normalizes the floorplan data, both scaling all internal geometry to y value of 0-160
@@ -192,6 +204,7 @@ class fpdata:
                 lowpoint = "p2"
             else:
                 print "ERROR: two points are equal, can't find the lowest."
+                print("p1 = " + str(path['p1x']) + "," + str(path['p1y']) + ", p2 = " + str(path['p2x']) + "," + str(path['p2y']))
                 return
 
             #now we find the points after we've translated the lowest to the

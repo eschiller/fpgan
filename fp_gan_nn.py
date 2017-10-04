@@ -32,17 +32,17 @@ class fp_gan_nn:
         self.batch_size = batch_size
         self.train_data_size=train_data_size
         self.datamgr = fpdatamgr(np_x_dim=self.np_x_dim, np_y_dim=self.np_y_dim)
-        self.datamgr.import_json_file("./data/json/datafp.json")
+
 
         #uncomment to use the "real" dataset from the json file
-        #self.datamgr.import_json_file("./data/json/datafp.json")
-        #self.fp_data = self.datamgr.generate_data_set(self.train_data_size)
+        self.datamgr.import_json_file("./data/json/datafp.json")
+        self.fp_data = self.datamgr.generate_data_set(self.train_data_size)
 
         #uncomment to use test floorplan (square with line through it) for entire dataset
         #self.fp_data = self.datamgr.generate_test_set(self.train_data_size)
         
         #uncomment to use a simple single floorplan for entire dataset
-        self.fp_data = self.datamgr.generate_svg_test_set("./data/vec/3.svg", 200000)
+        #self.fp_data = self.datamgr.generate_svg_test_set("./data/vec/3.svg", 200000)
 
 
         #VARIABLES
@@ -88,7 +88,9 @@ class fp_gan_nn:
         self.train_step_gn = optimizer(learn_rate_gn, beta1=0.5).minimize(self.ce_gn, var_list=[self.w_gn_h1, self.w_gn_h2, self.w_gn_h3, self.w_gn_h4])
 
         #PREP
-        self.sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
+        #uncomment to see hardware device (gpu) placement
+        #self.sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
+        self.sess = tf.Session()
         init = tf.global_variables_initializer()
         print(self.sess.run(init))
 

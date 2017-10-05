@@ -446,9 +446,7 @@ class fpdatamgr:
         ret_mat = np.zeros((count, self.np_x_dim, self.np_y_dim, 2))
         i = 0
 
-        print ("in to_numpy_array")
         for mgr_index in range(start_index, end_index):
-            print ("index is " + str(mgr_index))
             ret_mat[i] = self.fplist[mgr_index].to_numpy_array()
             i += 1
 

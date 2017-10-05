@@ -19,12 +19,14 @@ class fp_gan_nn:
                  train_data_size=20000,
                  optimizer=tf.train.AdamOptimizer,
                  sample_label="test",
+                 sample_data=False,
                  debug=False):
 
         self.np_x_dim = np_x_dim
         self.np_y_dim = np_y_dim
         self.debug = debug
         self.sample_label = sample_label
+        self.sample_data = sample_data
         #make sure printing numpy arrays is in full
         np.set_printoptions(threshold=np.nan)
 
@@ -187,12 +189,21 @@ class fp_gan_nn:
         #If we're going to go past the size of the training data, we'll loop back to the beginning with a modulus op
         scratch, start = divmod((rep * size) + size, self.train_data_size)
         end = start + size
+
+        #below three lines output what's happening in the dataset
+        feed_data = self.fp_data[start:end]
+
+        if self.sample_data:
+            rescaled_feed_data = fpdata.np_rescale(feed_data, snap=False)
+            self.datamgr.import_sample_fp(rescaled_feed_data[rep % size])
+            self.datamgr.export_svg(-1, "./samples/" + "dataset_" + str(rep) + ".svg")
+
         if check_acc:
-            acc, gen_y_sig, gen_y = self.sess.run([self.ce_dn, self.gen_y_sig, self.gen_y], feed_dict={self.real_x: self.fp_data[start:end], self.noise: feed_noise})
+            acc, gen_y_sig, gen_y = self.sess.run([self.ce_dn, self.gen_y_sig, self.gen_y], feed_dict={self.real_x: feed_data, self.noise: feed_noise})
             print("dn accuracy: " + str(acc))
             print("gen x avg: " + str(gen_y_sig.mean()))
         else:
-            self.sess.run(self.train_step_dn, feed_dict={self.real_x: self.fp_data[start:end], self.noise: feed_noise})
+            self.sess.run(self.train_step_dn, feed_dict={self.real_x: feed_data, self.noise: feed_noise})
 
 
     def train_all(self, reps=1000):
@@ -232,10 +243,12 @@ class fp_gan_nn:
         rescaled_samples = fpdata.np_rescale(fp_samples, snap=False)
         sample_to_out = rescaled_samples[0]
 
+
         #uncomment below to get printouts of sample
         if self.debug == True:
             print(sample_to_out)
 
         self.datamgr.import_sample_fp(sample_to_out)
+
         self.datamgr.export_svg(-1, "./samples/" + self.sample_label + "_" + str(reps) + ".svg")
 

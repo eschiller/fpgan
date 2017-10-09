@@ -54,12 +54,12 @@ class fp_gan_nn:
         self.w_gn_h4 = tf_utils.weight_var([5, 5, 2, 64])
 
         self.w_dn_h1 = tf_utils.weight_var([1, 1, 2, 8], name="discrim_w1")
-        self.w_dn_h2 = tf_utils.weight_var([5, 5, 8, 16], name="discrim_w1")
-        self.w_dn_h3 = tf_utils.weight_var([16 * self.np_x_dim * self.np_y_dim, 1024])
+        self.w_dn_h2 = tf_utils.weight_var([5, 5, 8, 16], name="discrim_w2")
+        self.w_dn_h3 = tf_utils.weight_var([16 * self.np_x_dim * self.np_y_dim, 1024], name="discrim_w3")
 
         #INPUT PARAMS
-        self.noise = tf.placeholder(tf.float32, shape=[self.batch_size, 100])
-        self.real_x = tf.placeholder(tf.float32, shape=[self.batch_size, self.np_x_dim, self.np_y_dim, 2])
+        self.noise = tf.placeholder(tf.float32, shape=[self.batch_size, 100], name="z_noise")
+        self.real_x = tf.placeholder(tf.float32, shape=[self.batch_size, self.np_x_dim, self.np_y_dim, 2], name="real_x")
 
         #####
         #COST AND TRAINING
@@ -67,11 +67,6 @@ class fp_gan_nn:
 
         #GN COST/TRAINING
         self.raw_real = self.dn(self.real_x)
-
-        #not used
-        #self.p_real = tf.nn.sigmoid(self.raw_real)
-
-        #todo you could try not running gen_y through sigmoid
         self.gen_y = self.gn(self.noise)
         self.gen_y_sig = tf.nn.sigmoid(self.gen_y)
         self.raw_gen = self.dn(self.gen_y_sig)
@@ -94,6 +89,7 @@ class fp_gan_nn:
         #self.sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
         self.sess = tf.Session()
         init = tf.global_variables_initializer()
+        writer = tf.summary.FileWriter("/tmp/tensorflow/", graph=tf.get_default_graph())
         print(self.sess.run(init))
 
 
@@ -213,6 +209,7 @@ class fp_gan_nn:
         :param reps:
         :return:
         '''
+
         for i in range(reps):
             _, dont_save = divmod(i, 10)
             if not dont_save:

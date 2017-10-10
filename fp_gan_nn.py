@@ -12,8 +12,8 @@ import tf_utils
 class fp_gan_nn:
     def __init__(self,
                  batch_size=100,
-                 learn_rate_dn=0.0001,
-                 learn_rate_gn=0.0001,
+                 learn_rate_dn=0.0002,
+                 learn_rate_gn=0.0002,
                  np_x_dim=64,
                  np_y_dim=64,
                  train_data_size=20000,
@@ -37,14 +37,14 @@ class fp_gan_nn:
 
 
         #uncomment to use the "real" dataset from the json file
-        self.datamgr.import_json_file("./data/json/datafp.json")
-        self.fp_data = self.datamgr.generate_data_set(self.train_data_size)
+        #self.datamgr.import_json_file("./data/json/datafp.json")
+        #self.fp_data = self.datamgr.generate_data_set(self.train_data_size)
 
         #uncomment to use test floorplan (square with line through it) for entire dataset
         #self.fp_data = self.datamgr.generate_test_set(self.train_data_size)
         
         #uncomment to use a simple single floorplan for entire dataset
-        #self.fp_data = self.datamgr.generate_svg_test_set("./data/vec/3.svg", 200000)
+        self.fp_data = self.datamgr.generate_svg_test_set("./data/vec/3.svg", 100000)
 
 
         #VARIABLES
@@ -54,34 +54,32 @@ class fp_gan_nn:
         self.w_gn_h4 = tf_utils.weight_var([5, 5, 2, 64])
 
         self.w_dn_h1 = tf_utils.weight_var([1, 1, 2, 8], name="discrim_w1")
-        self.w_dn_h2 = tf_utils.weight_var([5, 5, 8, 16], name="discrim_w2")
-        self.w_dn_h3 = tf_utils.weight_var([16 * self.np_x_dim * self.np_y_dim, 1024], name="discrim_w3")
+        self.w_dn_h2 = tf_utils.weight_var([5, 5, 8, 16], name="discrim_w1")
+        self.w_dn_h3 = tf_utils.weight_var([16 * self.np_x_dim * self.np_y_dim, 1024])
 
         #INPUT PARAMS
-        self.noise = tf.placeholder(tf.float32, shape=[self.batch_size, 100], name="z_noise")
-        self.real_x = tf.placeholder(tf.float32, shape=[self.batch_size, self.np_x_dim, self.np_y_dim, 2], name="real_x")
+        self.noise = tf.placeholder(tf.float32, shape=[self.batch_size, 100])
+        self.real_x = tf.placeholder(tf.float32, shape=[self.batch_size, self.np_x_dim, self.np_y_dim, 2])
 
         #####
         #COST AND TRAINING
         #####
 
         #GN COST/TRAINING
-        self.raw_real = self.dn(self.real_x)
         self.gen_y = self.gn(self.noise)
         self.gen_y_sig = tf.nn.sigmoid(self.gen_y)
-        self.raw_gen = self.dn(self.gen_y_sig)
-        self.p_gen = tf.nn.sigmoid(self.raw_gen)
+        self.raw_gen_logits, self.raw_gen_act = self.dn(self.gen_y_sig)
 
 
         #DN COST/TRAINING
-        self.ce_dn_real = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.raw_real, labels=tf.ones_like(self.raw_real)))
-        self.ce_dn_gen = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.raw_gen, labels=tf.zeros_like(self.raw_gen)))
+        self.raw_real_logits, self.raw_real_act = self.dn(self.real_x)
+        self.ce_dn_real = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.raw_real_logits, labels=tf.ones_like(self.raw_real_logits)))
+        self.ce_dn_gen = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.raw_gen_logits, labels=tf.zeros_like(self.raw_gen_logits)))
         self.ce_dn = self.ce_dn_real + self.ce_dn_gen
         self.train_step_dn = optimizer(learn_rate_dn, beta1=0.5).minimize(self.ce_dn,var_list=[self.w_dn_h1, self.w_dn_h2, self.w_dn_h3])
 
-        self.ce_gn = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.raw_gen, labels=tf.ones_like(self.raw_gen)))
-
-        #todo uncomment below
+        #GN COST/TRAINING
+        self.ce_gn = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.raw_gen_logits, labels=tf.ones_like(self.raw_gen_logits)))
         self.train_step_gn = optimizer(learn_rate_gn, beta1=0.5).minimize(self.ce_gn, var_list=[self.w_gn_h1, self.w_gn_h2, self.w_gn_h3, self.w_gn_h4])
 
         #PREP
@@ -89,7 +87,6 @@ class fp_gan_nn:
         #self.sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
         self.sess = tf.Session()
         init = tf.global_variables_initializer()
-        writer = tf.summary.FileWriter("/tmp/tensorflow/", graph=tf.get_default_graph())
         print(self.sess.run(init))
 
 
@@ -144,10 +141,11 @@ class fp_gan_nn:
         h2 = tf.reshape(h2, [self.batch_size, -1])
 
         #[100, self.np_x_dim * self.np_y_dim * 16] * [self.np_x_dim * self.np_y_dim * 16, 1024] = [100, 1024]
-        h3 = tf.nn.relu(tf.matmul(h2, self.w_dn_h3))
-
+        #h3 = tf.nn.relu(tf.matmul(h2, self.w_dn_h3))
+        h3_logits = tf.matmul(h2, self.w_dn_h3)
+        h3_act = tf.nn.sigmoid(h3_logits)
         #returns [100, 1024]
-        return h3
+        return h3_logits, h3_act
 
 
 
@@ -209,7 +207,6 @@ class fp_gan_nn:
         :param reps:
         :return:
         '''
-
         for i in range(reps):
             _, dont_save = divmod(i, 10)
             if not dont_save:
@@ -220,6 +217,9 @@ class fp_gan_nn:
                 self.train_dn(i, self.batch_size, check_acc=True)
 
             self.train_dn(i, size=self.batch_size)
+            self.train_gn(size=self.batch_size)
+
+            #op so nice we'll do it twice
             self.train_gn(size=self.batch_size)
 
 

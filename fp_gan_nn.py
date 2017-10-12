@@ -37,21 +37,20 @@ class fp_gan_nn:
 
 
         #uncomment to use the "real" dataset from the json file
-        #self.datamgr.import_json_file("./data/json/datafp.json")
-        #self.fp_data = self.datamgr.generate_data_set(self.train_data_size)
+        self.datamgr.import_json_file("./data/json/datafp.json")
+        self.fp_data = self.datamgr.generate_data_set(self.train_data_size)
 
         #uncomment to use test floorplan (square with line through it) for entire dataset
         #self.fp_data = self.datamgr.generate_test_set(self.train_data_size)
         
         #uncomment to use a simple single floorplan for entire dataset
-        self.fp_data = self.datamgr.generate_svg_test_set("./data/vec/3.svg", 100000)
+        #self.fp_data = self.datamgr.generate_svg_test_set("./data/vec/3.svg", 100000)
 
 
         #VARIABLES
-        self.w_gn_h1 = tf_utils.weight_var([100, 1024], name="gen_w1")
-        self.w_gn_h2 = tf_utils.weight_var([1024, 128 * self.np_x_dim * self.np_y_dim], name="gen_w2")
-        self.w_gn_h3 = tf_utils.weight_var([5, 5, 64, 128], name="gen_w3")
-        self.w_gn_h4 = tf_utils.weight_var([5, 5, 2, 64])
+        self.w_gn_h1 = tf_utils.weight_var([100, 128 * self.np_x_dim * self.np_y_dim], name="gen_w2")
+        self.w_gn_h2 = tf_utils.weight_var([5, 5, 64, 128], name="gen_w3")
+        self.w_gn_h3 = tf_utils.weight_var([1, 1, 2, 64])
 
         self.w_dn_h1 = tf_utils.weight_var([1, 1, 2, 8], name="discrim_w1")
         self.w_dn_h2 = tf_utils.weight_var([5, 5, 8, 16], name="discrim_w1")
@@ -80,7 +79,7 @@ class fp_gan_nn:
 
         #GN COST/TRAINING
         self.ce_gn = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.raw_gen_logits, labels=tf.ones_like(self.raw_gen_logits)))
-        self.train_step_gn = optimizer(learn_rate_gn, beta1=0.5).minimize(self.ce_gn, var_list=[self.w_gn_h1, self.w_gn_h2, self.w_gn_h3, self.w_gn_h4])
+        self.train_step_gn = optimizer(learn_rate_gn, beta1=0.5).minimize(self.ce_gn, var_list=[self.w_gn_h1, self.w_gn_h2, self.w_gn_h3])
 
         #PREP
         #uncomment to see hardware device (gpu) placement
@@ -100,28 +99,25 @@ class fp_gan_nn:
         # matmul [100,100] * [100,1024], resulting in [100,1024]
         h1 = tf.nn.relu(tf.matmul(Z, self.w_gn_h1))
 
-        #gen_W2 is [100,1024] * [1024,524288] resulting in [100,(128 * np_x_dim * np_y_dim)]
-        h2 = tf.nn.relu(tf.matmul(h1, self.w_gn_h2))
-
         # this will result in [100,self.np_x_dim,self.np_y_dim,128]
-        h2 = tf.reshape(h2, [self.batch_size,self.np_x_dim,self.np_y_dim,128])
+        h1 = tf.reshape(h1, [self.batch_size,self.np_x_dim,self.np_y_dim,128])
 
         #output shape is [100,self.np_x_dim,self.np_y_dim,64]
-        output_shape_l3 = [self.batch_size,self.np_x_dim,self.np_y_dim,64]
+        output_shape_l2 = [self.batch_size,self.np_x_dim,self.np_y_dim,64]
 
         #[100,self.np_x_dim,self.np_y_dim,128] with filters of [5,5,64,128] at [1,1,1,1] strides
         #will have output shape of [100,self.np_x_dim,self.np_y_dim,64] after transpose
-        h3 = tf.nn.conv2d_transpose(h2, self.w_gn_h3, output_shape=output_shape_l3, strides=[1,1,1,1])
-        h3 = tf.nn.relu(h3)
+        h2 = tf.nn.conv2d_transpose(h1, self.w_gn_h2, output_shape=output_shape_l2, strides=[1,1,1,1])
+        h2 = tf.nn.relu(h2)
 
         # output shape is [100,self.np_x_dim,self.np_y_dim,2]
-        output_shape_l4 = [self.batch_size,self.np_x_dim,self.np_y_dim,2]
+        output_shape_l3 = [self.batch_size,self.np_x_dim,self.np_y_dim,2]
 
         #[100,self.np_x_dim,self.np_y_dim,64] with filters at [5,5,2,64] and strides [1,1,1,1]
         #will have [100,self.np_x_dim,self.np_y_dim,2] after transpose
-        h4 = tf.nn.conv2d_transpose(h3, self.w_gn_h4, output_shape=output_shape_l4, strides=[1,1,1,1])
+        h3 = tf.nn.conv2d_transpose(h2, self.w_gn_h3, output_shape=output_shape_l3, strides=[1,1,1,1])
 
-        return h4
+        return h3
 
 
 

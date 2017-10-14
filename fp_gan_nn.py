@@ -38,7 +38,8 @@ class fp_gan_nn:
 
         #uncomment to use the "real" dataset from the json file
         self.datamgr.import_json_file("./data/json/datafp.json")
-        self.fp_data = self.datamgr.generate_data_set(self.train_data_size, generations=10, rnd_rescale=True)
+        #self.fp_data = self.datamgr.generate_data_set(self.train_data_size, generations=10, rnd_rescale=True)
+        self.fp_data = self.datamgr.generate_data_set(self.train_data_size)
 
         #uncomment to use test floorplan (square with line through it) for entire dataset
         #self.fp_data = self.datamgr.generate_test_set(self.train_data_size)
@@ -48,13 +49,15 @@ class fp_gan_nn:
 
 
         #VARIABLES
-        self.w_gn_h1 = tf_utils.weight_var([100, 128 * self.np_x_dim * self.np_y_dim], name="gen_w2")
-        self.w_gn_h2 = tf_utils.weight_var([5, 5, 64, 128], name="gen_w3")
-        self.w_gn_h3 = tf_utils.weight_var([1, 1, 2, 64])
+        self.w_gn_h0 = tf_utils.weight_var([100, 256 * self.np_x_dim * self.np_y_dim], name="gen_w0")
+        self.w_gn_h1 = tf_utils.weight_var([5, 5, 128, 256], name="gen_w1")
+        self.w_gn_h2 = tf_utils.weight_var([5, 5, 64, 128], name="gen_w2")
+        self.w_gn_h3 = tf_utils.weight_var([1, 1, 2, 64], name="gen_w3")
 
         self.w_dn_h1 = tf_utils.weight_var([1, 1, 2, 8], name="discrim_w1")
-        self.w_dn_h2 = tf_utils.weight_var([5, 5, 8, 16], name="discrim_w1")
-        self.w_dn_h3 = tf_utils.weight_var([16 * self.np_x_dim * self.np_y_dim, 1024])
+        self.w_dn_h2 = tf_utils.weight_var([5, 5, 8, 16], name="discrim_w2")
+        self.w_dn_h3 = tf_utils.weight_var([5, 5, 16, 32], name="discrim_w3")
+        self.w_dn_h4 = tf_utils.weight_var([32 * self.np_x_dim * self.np_y_dim, 1024], name="discrim_w4")
 
         #INPUT PARAMS
         self.noise = tf.placeholder(tf.float32, shape=[self.batch_size, 100])
@@ -75,11 +78,11 @@ class fp_gan_nn:
         self.ce_dn_real = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.raw_real_logits, labels=tf.ones_like(self.raw_real_logits)))
         self.ce_dn_gen = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.raw_gen_logits, labels=tf.zeros_like(self.raw_gen_logits)))
         self.ce_dn = self.ce_dn_real + self.ce_dn_gen
-        self.train_step_dn = optimizer(learn_rate_dn, beta1=0.5).minimize(self.ce_dn,var_list=[self.w_dn_h1, self.w_dn_h2, self.w_dn_h3])
+        self.train_step_dn = optimizer(learn_rate_dn, beta1=0.5).minimize(self.ce_dn,var_list=[self.w_dn_h1, self.w_dn_h2, self.w_dn_h3, self.w_dn_h4])
 
         #GN COST/TRAINING
         self.ce_gn = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.raw_gen_logits, labels=tf.ones_like(self.raw_gen_logits)))
-        self.train_step_gn = optimizer(learn_rate_gn, beta1=0.5).minimize(self.ce_gn, var_list=[self.w_gn_h1, self.w_gn_h2, self.w_gn_h3])
+        self.train_step_gn = optimizer(learn_rate_gn, beta1=0.5).minimize(self.ce_gn, var_list=[self.w_gn_h0, self.w_gn_h1, self.w_gn_h2, self.w_gn_h3])
 
         #PREP
         #uncomment to see hardware device (gpu) placement
@@ -97,10 +100,13 @@ class fp_gan_nn:
         :return:
         '''
         # matmul [100,100] * [100,1024], resulting in [100,1024]
-        h1 = tf.nn.relu(tf.matmul(Z, self.w_gn_h1))
-
+        h0 = tf.nn.relu(tf.matmul(Z, self.w_gn_h0))
         # this will result in [100,self.np_x_dim,self.np_y_dim,128]
-        h1 = tf.reshape(h1, [self.batch_size,self.np_x_dim,self.np_y_dim,128])
+        h0 = tf.reshape(h0, [self.batch_size,self.np_x_dim,self.np_y_dim,256])
+
+        output_shape_l1 = [self.batch_size,self.np_x_dim,self.np_y_dim,128]
+        h1 = tf.nn.conv2d_transpose(h0, self.w_gn_h1, output_shape=output_shape_l1,strides=[1,1,1,1])
+        h1 = tf.nn.relu(h1)
 
         #output shape is [100,self.np_x_dim,self.np_y_dim,64]
         output_shape_l2 = [self.batch_size,self.np_x_dim,self.np_y_dim,64]
@@ -134,14 +140,16 @@ class fp_gan_nn:
         h2 = tf.nn.relu( tf.nn.conv2d( h1, self.w_dn_h2, strides=[1,1,1,1], padding='SAME') )
 
         #reshape for [100, self.np_x_dim * self.np_y_dim * 16]
-        h2 = tf.reshape(h2, [self.batch_size, -1])
+        h3 = tf.nn.relu( tf.nn.conv2d( h2, self.w_dn_h3, strides=[1,1,1,1], padding='SAME') )
+
+        h3 = tf.reshape(h3, [self.batch_size, -1])
 
         #[100, self.np_x_dim * self.np_y_dim * 16] * [self.np_x_dim * self.np_y_dim * 16, 1024] = [100, 1024]
         #h3 = tf.nn.relu(tf.matmul(h2, self.w_dn_h3))
-        h3_logits = tf.matmul(h2, self.w_dn_h3)
-        h3_act = tf.nn.sigmoid(h3_logits)
+        h4_logits = tf.matmul(h3, self.w_dn_h4)
+        h4_act = tf.nn.sigmoid(h4_logits)
         #returns [100, 1024]
-        return h3_logits, h3_act
+        return h4_logits, h4_act
 
 
 

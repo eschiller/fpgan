@@ -1,5 +1,6 @@
 import numpy as np
 import math
+import random
 
 def mid_x(path):
     return (path["p1x"] + path["p2x"]) / 2.0
@@ -34,6 +35,16 @@ class fpdata:
 
     def __str__(self):
         return str(self.paths)
+
+
+    def copy(self, orig):
+        '''
+        copys an existing fp's paths to an empty fp
+        :param orig:
+        :return:
+        '''
+        for path in orig.paths:
+            self.add_path(path["pathtype"], path["p1x"], path["p1y"], path["p2x"], path["p2y"])
 
 
 
@@ -228,3 +239,16 @@ class fpdata:
 
         #finally return
         return ret_mat
+
+    def rnd_rescale(self):
+        '''
+        Will rescale down 0 - 10 percent
+        :return:
+        '''
+        adjustment = random.random() / 10.0
+        scale = 1 - adjustment
+        for path in self.paths:
+            path["p1x"] = path["p1x"] * scale
+            path["p1y"] = path["p1y"] * scale
+            path["p2x"] = path["p2x"] * scale
+            path["p2y"] = path["p2y"] * scale

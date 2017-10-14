@@ -38,7 +38,7 @@ class fp_gan_nn:
 
         #uncomment to use the "real" dataset from the json file
         self.datamgr.import_json_file("./data/json/datafp.json")
-        self.fp_data = self.datamgr.generate_data_set(self.train_data_size)
+        self.fp_data = self.datamgr.generate_data_set(self.train_data_size, generations=10, rnd_rescale=True)
 
         #uncomment to use test floorplan (square with line through it) for entire dataset
         #self.fp_data = self.datamgr.generate_test_set(self.train_data_size)
@@ -183,7 +183,7 @@ class fp_gan_nn:
         #below three lines output what's happening in the dataset
         feed_data = self.fp_data[start:end]
 
-        if self.sample_data:
+        if self.sample_data and check_acc:
             rescaled_feed_data = fpdata.np_rescale(feed_data, snap=False)
             self.datamgr.import_sample_fp(rescaled_feed_data[rep % size])
             self.datamgr.export_svg(-1, "./samples/" + "dataset_" + str(rep) + ".svg")

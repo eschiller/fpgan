@@ -432,7 +432,7 @@ class fpdatamgr:
             f.write("\n")
 
 
-    def to_numpy_array(self, start_index, end_index):
+    def to_numpy_array(self, start_index, end_index, reps=1, rnd_rescale=False):
         '''
         Creates and returns a numpy array dataset containing floorplans from
         fplist from start_index to end_index
@@ -443,18 +443,23 @@ class fpdatamgr:
         '''
         count = end_index - start_index + 1
 
-        ret_mat = np.zeros((count, self.np_x_dim, self.np_y_dim, 2))
+        ret_mat = np.zeros((count * reps, self.np_x_dim, self.np_y_dim, 2))
         i = 0
 
-        for mgr_index in range(start_index, end_index):
-            ret_mat[i] = self.fplist[mgr_index].to_numpy_array()
-            i += 1
+        for rep in range(reps):
+            for mgr_index in range(start_index, end_index):
+                tmp_fp = fpdata.fpdata(np_x_dim=self.np_x_dim, np_y_dim=self.np_y_dim)
+                tmp_fp.copy(self.fplist[mgr_index])
+                if rnd_rescale:
+                    tmp_fp.rnd_rescale()
+                ret_mat[i] = tmp_fp.to_numpy_array()
+                i += 1
 
         return ret_mat
 
 
 
-    def generate_data_set(self, size=100):
+    def generate_data_set(self, size=100, generations=1, rnd_rescale=False):
         '''
         Creates a data set for feeding to a NN (in numpy format) from the
         available floorplans from the data.
@@ -463,14 +468,14 @@ class fpdatamgr:
         '''
         #figure out how many floorplans we have and get them all as numpy mats
         fpcount = len(self.fplist)
-        all_fp_as_np = self.to_numpy_array(0, fpcount)
+        all_fp_as_np = self.to_numpy_array(0, fpcount, reps=generations, rnd_rescale=rnd_rescale)
 
         #get full matrix
         ret_mat = np.zeros((size, self.np_x_dim, self.np_y_dim, 2))
 
         #just cycle through our available fps until we run out of slots to fill
         for i in range(size):
-            ret_mat[i] = all_fp_as_np[i % fpcount]
+            ret_mat[i] = all_fp_as_np[i % (fpcount * generations)]
 
         return ret_mat
 

@@ -12,8 +12,8 @@ import tf_utils
 class fp_gan_nn:
     def __init__(self,
                  batch_size=100,
-                 learn_rate_dn=0.0002,
-                 learn_rate_gn=0.0002,
+                 learn_rate_dn=0.0001,
+                 learn_rate_gn=0.0001,
                  np_x_dim=64,
                  np_y_dim=64,
                  train_data_size=20000,

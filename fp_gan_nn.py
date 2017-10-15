@@ -51,13 +51,21 @@ class fp_gan_nn:
         #VARIABLES
         self.w_gn_h0 = tf_utils.weight_var([100, 256 * self.np_x_dim * self.np_y_dim], name="gen_w0")
         self.w_gn_h1 = tf_utils.weight_var([5, 5, 128, 256], name="gen_w1")
-        self.w_gn_h2 = tf_utils.weight_var([5, 5, 64, 128], name="gen_w2")
+        self.w_gn_h2 = tf_utils.weight_var([9, 9, 64, 128], name="gen_w2")
         self.w_gn_h3 = tf_utils.weight_var([1, 1, 2, 64], name="gen_w3")
+        self.gn_h0_bias = tf.Variable(tf.zeros([256]), name="dn_h0_bias")
+        self.gn_h1_bias = tf.Variable(tf.zeros([128]), name="dn_h1_bias")
+        self.gn_h2_bias = tf.Variable(tf.zeros([64]), name="dn_h2_bias")
+        self.gn_h3_bias = tf.Variable(tf.zeros([2]), name="dn_h3_bias")
 
-        self.w_dn_h1 = tf_utils.weight_var([1, 1, 2, 8], name="discrim_w1")
-        self.w_dn_h2 = tf_utils.weight_var([5, 5, 8, 16], name="discrim_w2")
-        self.w_dn_h3 = tf_utils.weight_var([5, 5, 16, 32], name="discrim_w3")
-        self.w_dn_h4 = tf_utils.weight_var([32 * self.np_x_dim * self.np_y_dim, 1024], name="discrim_w4")
+        self.w_dn_h1 = tf_utils.weight_var([1, 1, 2, 16], name="discrim_w1")
+        self.w_dn_h2 = tf_utils.weight_var([9, 9, 16, 32], name="discrim_w2")
+        self.w_dn_h3 = tf_utils.weight_var([5, 5, 32, 64], name="discrim_w3")
+        self.w_dn_h4 = tf_utils.weight_var([64 * self.np_x_dim * self.np_y_dim, 512], name="discrim_w4")
+        self.dn_h1_bias = tf.Variable(tf.zeros([16]), name="dn_h1_bias")
+        self.dn_h2_bias = tf.Variable(tf.zeros([32]), name="dn_h2_bias")
+        self.dn_h3_bias = tf.Variable(tf.zeros([64]), name="dn_h3_bias")
+        self.dn_h4_bias = tf.Variable(tf.zeros([512]), name="dn_h4_bias")
 
         #INPUT PARAMS
         self.noise = tf.placeholder(tf.float32, shape=[self.batch_size, 100])
@@ -78,11 +86,11 @@ class fp_gan_nn:
         self.ce_dn_real = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.raw_real_logits, labels=tf.ones_like(self.raw_real_logits)))
         self.ce_dn_gen = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.raw_gen_logits, labels=tf.zeros_like(self.raw_gen_logits)))
         self.ce_dn = self.ce_dn_real + self.ce_dn_gen
-        self.train_step_dn = optimizer(learn_rate_dn, beta1=0.5).minimize(self.ce_dn,var_list=[self.w_dn_h1, self.w_dn_h2, self.w_dn_h3, self.w_dn_h4])
+        self.train_step_dn = optimizer(learn_rate_dn, beta1=0.5).minimize(self.ce_dn,var_list=[self.dn_h1_bias, self.dn_h2_bias, self.dn_h3_bias, self.dn_h4_bias, self.w_dn_h1, self.w_dn_h2, self.w_dn_h3])
 
         #GN COST/TRAINING
         self.ce_gn = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.raw_gen_logits, labels=tf.ones_like(self.raw_gen_logits)))
-        self.train_step_gn = optimizer(learn_rate_gn, beta1=0.5).minimize(self.ce_gn, var_list=[self.w_gn_h0, self.w_gn_h1, self.w_gn_h2, self.w_gn_h3])
+        self.train_step_gn = optimizer(learn_rate_gn, beta1=0.5).minimize(self.ce_gn, var_list=[self.gn_h0_bias, self.gn_h1_bias, self.gn_h2_bias, self.gn_h3_bias, self.w_gn_h1, self.w_gn_h2, self.w_gn_h3])
 
         #PREP
         #uncomment to see hardware device (gpu) placement
@@ -103,9 +111,11 @@ class fp_gan_nn:
         h0 = tf.nn.relu(tf.matmul(Z, self.w_gn_h0))
         # this will result in [100,self.np_x_dim,self.np_y_dim,128]
         h0 = tf.reshape(h0, [self.batch_size,self.np_x_dim,self.np_y_dim,256])
+        h0 = tf.nn.bias_add(h0, self.gn_h0_bias)
 
         output_shape_l1 = [self.batch_size,self.np_x_dim,self.np_y_dim,128]
         h1 = tf.nn.conv2d_transpose(h0, self.w_gn_h1, output_shape=output_shape_l1,strides=[1,1,1,1])
+        h1 = tf.nn.bias_add(h1, self.gn_h1_bias)
         h1 = tf.nn.relu(h1)
 
         #output shape is [100,self.np_x_dim,self.np_y_dim,64]
@@ -114,6 +124,7 @@ class fp_gan_nn:
         #[100,self.np_x_dim,self.np_y_dim,128] with filters of [5,5,64,128] at [1,1,1,1] strides
         #will have output shape of [100,self.np_x_dim,self.np_y_dim,64] after transpose
         h2 = tf.nn.conv2d_transpose(h1, self.w_gn_h2, output_shape=output_shape_l2, strides=[1,1,1,1])
+        h2 = tf.nn.bias_add(h2, self.gn_h2_bias)
         h2 = tf.nn.relu(h2)
 
         # output shape is [100,self.np_x_dim,self.np_y_dim,2]
@@ -122,6 +133,7 @@ class fp_gan_nn:
         #[100,self.np_x_dim,self.np_y_dim,64] with filters at [5,5,2,64] and strides [1,1,1,1]
         #will have [100,self.np_x_dim,self.np_y_dim,2] after transpose
         h3 = tf.nn.conv2d_transpose(h2, self.w_gn_h3, output_shape=output_shape_l3, strides=[1,1,1,1])
+        h3 = tf.nn.bias_add(h3, self.gn_h3_bias)
 
         return h3
 
@@ -135,18 +147,23 @@ class fp_gan_nn:
         '''
         # [100, self.np_x_dim, self.np_y_dim, 2] with filters [1,1,2,8] will output [100, self.np_x_dim, self.np_y_dim, 8]
         h1 = tf.nn.relu( tf.nn.conv2d( fpdata, self.w_dn_h1, strides=[1,1,1,1], padding='SAME' ))
+        h1 = tf.nn.bias_add(h1, self.dn_h1_bias)
 
         #conv2d([100, self.np_x_dim, self.np_y_dim, 8] with filters [5, 5, 8, 16]) = [100, self.np_x_dim, self.np_y_dim, 16]
         h2 = tf.nn.relu( tf.nn.conv2d( h1, self.w_dn_h2, strides=[1,1,1,1], padding='SAME') )
+        h2 = tf.nn.bias_add(h2, self.dn_h2_bias)
 
         #reshape for [100, self.np_x_dim * self.np_y_dim * 16]
         h3 = tf.nn.relu( tf.nn.conv2d( h2, self.w_dn_h3, strides=[1,1,1,1], padding='SAME') )
+        h3 = tf.nn.bias_add(h3, self.dn_h3_bias)
 
         h3 = tf.reshape(h3, [self.batch_size, -1])
 
         #[100, self.np_x_dim * self.np_y_dim * 16] * [self.np_x_dim * self.np_y_dim * 16, 1024] = [100, 1024]
         #h3 = tf.nn.relu(tf.matmul(h2, self.w_dn_h3))
         h4_logits = tf.matmul(h3, self.w_dn_h4)
+        h4_logits = tf.nn.bias_add(h4_logits, self.dn_h4_bias)
+
         h4_act = tf.nn.sigmoid(h4_logits)
         #returns [100, 1024]
         return h4_logits, h4_act

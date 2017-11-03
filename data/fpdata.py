@@ -230,9 +230,11 @@ class fpdata:
                 transhighx = path["p1x"] - path["p2x"]
                 transhighy = path["p1y"] - path["p2y"]
 
-            #finally, place the translated high point on the grid at the found midpoint
-            ret_mat[int(xmid_rs), int(ymid_rs), 0] = transhighx
-            ret_mat[int(xmid_rs), int(ymid_rs), 1] = transhighy
+            #finally, if the path is longer than previous path, place the translated high point on
+            # the grid at the found midpoint
+            if (transhighy + transhighx) > (ret_mat[int(xmid_rs), int(ymid_rs), 0] + ret_mat[int(xmid_rs), int(ymid_rs), 1]):
+                ret_mat[int(xmid_rs), int(ymid_rs), 0] = transhighx
+                ret_mat[int(xmid_rs), int(ymid_rs), 1] = transhighy
 
             #print("Converting path " + str(path['p1x']) + "," + str(path['p1y']) + "; " + str(path['p2x']) + "," + str(path['p2y']) + " to a " + str(transhighx) + "," + str(transhighy) + " vec at loc" + str(xmid_rs) + "," + str(ymid_rs))
 

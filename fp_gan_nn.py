@@ -12,15 +12,16 @@ import tf_utils
 class fp_gan_nn:
     def __init__(self,
                  batch_size=100,
-                 learn_rate_dn=0.0001,
-                 learn_rate_gn=0.0001,
+                 learn_rate_dn=0.0002,
+                 learn_rate_gn=0.0002,
                  np_x_dim=64,
                  np_y_dim=64,
                  train_data_size=20000,
                  optimizer=tf.train.AdamOptimizer,
                  sample_label="test",
                  sample_data=False,
-                 debug=False):
+                 debug=False,
+                 restore_checkpoint=None):
 
         self.np_x_dim = np_x_dim
         self.np_y_dim = np_y_dim
@@ -95,11 +96,13 @@ class fp_gan_nn:
         #PREP
         #uncomment to see hardware device (gpu) placement
         #self.sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
+        self.saver = tf.train.Saver()
         self.sess = tf.Session()
         init = tf.global_variables_initializer()
         print(self.sess.run(init))
 
-
+        if restore_checkpoint:
+            self.saver.restore(self.sess, restore_checkpoint)
 
     def gn(self, Z):
         '''
@@ -256,7 +259,7 @@ class fp_gan_nn:
         return self.sess.run(self.gen_y_sig, feed_dict={self.noise: feed_noise})
 
 
-    def save_checkpoint(self, reps):
+    def save_checkpoint(self, reps, save_state=True):
         fp_samples = self.generate(self.batch_size)
         rescaled_samples = fpdata.np_rescale(fp_samples, snap=False)
         sample_to_out = rescaled_samples[0]
@@ -265,6 +268,10 @@ class fp_gan_nn:
         #uncomment below to get printouts of sample
         if self.debug == True:
             print(sample_to_out)
+
+        #save parameter state
+        if save_state:
+            self.saver.save(self.sess, "./checkpoints/state" + str(reps) + ".ckpt")
 
         self.datamgr.import_sample_fp(sample_to_out)
 

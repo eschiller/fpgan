@@ -6,6 +6,7 @@ import xml.etree.ElementTree
 from xml.etree.ElementTree import Element, SubElement, tostring, XML
 import xml.dom.minidom
 import re
+import math
 
 def fix_svg(path):
     '''
@@ -300,7 +301,7 @@ class fpdatamgr:
 
 
 
-    def import_sample_fp(self, np_array):
+    def import_sample_fp(self, np_array, lane_snap=True):
         '''
         Takes a numpy array of 64, 64, 2 and changes it in to a fpdata object then adds it to the samples
         '''
@@ -310,6 +311,10 @@ class fpdatamgr:
 
         x_mult = float(self.real_x_dim) / float(self.np_x_dim)
         y_mult = float(self.real_y_dim) / float(self.np_y_dim)
+
+        print("real_x_dim is " + str(self.real_x_dim))
+        print("np_x_dim is " + str(self.np_x_dim))
+        print("xmult is " + str(x_mult))
 
         #print("Multiplier is " + str(x_mult))
 
@@ -329,6 +334,29 @@ class fpdatamgr:
                     p2_x = round(midpoint_x + (np_array[i][j][0] / 2))
                     p1_y = round(midpoint_y - (np_array[i][j][1] / 2))
                     p2_y = round(midpoint_y + (np_array[i][j][1] / 2))
+
+                    if lane_snap:
+                        #p1_x = (round(p1_x / x_mult)) * x_mult
+                        #p2_x = (round(p2_x / x_mult)) * x_mult
+                        #p1_y = (round(p1_y / y_mult)) * y_mult
+                        #p2_y = (round(p2_y / y_mult)) * y_mult
+
+                        #get the pre-rescale lane locations
+                        p1_x = (round(p1_x / x_mult))
+                        p2_x = (round(p2_x / x_mult))
+                        p1_y = (round(p1_y / y_mult))
+                        p2_y = (round(p2_y / y_mult))
+
+                        #min/max the values
+                        p1_x = max(min(p1_x, self.np_x_dim), 0)
+                        p1_y = max(min(p1_y, self.np_y_dim), 0)
+                        p2_x = max(min(p2_x, self.np_x_dim), 0)
+                        p2_y = max(min(p2_y, self.np_y_dim), 0)
+
+                        p1_x = p1_x * x_mult
+                        p1_y = p1_y * y_mult
+                        p2_x = p2_x * x_mult
+                        p2_y = p2_y * y_mult
 
                     #add the path we've found to the fpdata object
                     fp1.add_path(1, p1_x, p1_y, p2_x, p2_y)

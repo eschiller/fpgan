@@ -10,7 +10,7 @@ def mid_y(path):
     return (path["p1y"] + path["p2y"]) / 2.0
 
 
-def np_rescale(npdata, multiplier=32, snap=True):
+def np_rescale(npdata, multiplier=32, snap=True, np_dim=8):
     new_mat = np.zeros(npdata.shape)
     for i in range(npdata.shape[0]):
         for j in range(npdata.shape[1]):
@@ -27,7 +27,8 @@ class fpdata:
     '''
     Basic data object for managing a single floorplan
     '''
-    def __init__(self, np_x_dim=64, np_y_dim=64):
+    def __init__(self, np_x_dim=64, np_y_dim=64, debug=False):
+        self.debug = debug
         self.paths = []
         self.np_x_dim = np_x_dim
         self.np_y_dim = np_y_dim
@@ -190,15 +191,37 @@ class fpdata:
             #which actually contains 65 integer values, but we want to keep indices even (ideally some 2^x)
             #I'm usuing a hacky solution to just combine the first and second indicies by saying if it's
             # < 0, make it 0.
-            xmid_rs = round((path['p1x'] + path['p2x']) * (self.np_x_dim / 2)) - 1
-            ymid_rs = round((path['p1y'] + path['p2y']) * (self.np_y_dim / 2)) - 1
+
+            #fencepost rescaling is intended to help deal with the problem that we're dealing with numbers
+            #like 0-32, but only have 0-7 indecies, which doesn't devide up cleanly, so we rescale everything
+            #to one less
+            x_fencepost_rescaler = float((self.np_x_dim - 1)) / float(self.np_x_dim)
+            y_fencepost_rescaler = float((self.np_y_dim - 1)) / float(self.np_y_dim)
+
+            if self.debug:
+                print("x_fp_rescaler = " + str(x_fencepost_rescaler))
+                print("x_fp_rescaler = " + str(y_fencepost_rescaler))
+
+            xmid_rs = round(((path['p1x'] + path['p2x']) * (self.np_x_dim / 2)) * x_fencepost_rescaler)
+            ymid_rs = round(((path['p1y'] + path['p2y']) * (self.np_y_dim / 2)) * y_fencepost_rescaler)
+
+
+            if self.debug:
+                print("xmid_rs = " + str(xmid_rs))
+                print("ymid_rs = " + str(ymid_rs))
 
             if xmid_rs < 0:
                 xmid_rs = 0
             if ymid_rs < 0:
                 ymid_rs = 0
 
-
+            #rescale path values too
+            for key in path:
+                if self.debug:
+                    print("path before being rescaled  " +  str(path[key]))
+                path[key] = path[key] * x_fencepost_rescaler
+                if self.debug:
+                    print("path after being rescaled  " + str(path[key]))
 
             #get "lowest point" from path. The rules for lowest are if either
             #point has a lower y, that is the lowest. If their y's are equal,

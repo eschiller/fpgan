@@ -17,7 +17,7 @@ svg_to_np_to_svg.py 8 4
 
 '''
 
-datamgr = fpdatamgr.fpdatamgr(np_x_dim=int(sys.argv[1]), np_y_dim=int(sys.argv[1]))
+datamgr = fpdatamgr.fpdatamgr(np_x_dim=int(sys.argv[1]), np_y_dim=int(sys.argv[1]), debug=True)
 datamgr.import_svg_file("../data/vec/" + sys.argv[2] + ".svg")
 datamgr.import_svg_file("../data/vec/1.svg")
 nparr = datamgr.to_numpy_array(0, 1)

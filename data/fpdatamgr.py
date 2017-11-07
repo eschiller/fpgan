@@ -6,6 +6,7 @@ import xml.etree.ElementTree
 from xml.etree.ElementTree import Element, SubElement, tostring, XML
 import xml.dom.minidom
 import re
+import math
 
 def fix_svg(path):
     '''
@@ -109,7 +110,7 @@ class fpdatamgr:
                 if self.debug == True:
                     print("In import_json_file. jsonfp is:")
                     print(jsonfp)
-                fp = fpdata.fpdata(np_x_dim=self.np_x_dim, np_y_dim=self.np_y_dim)
+                fp = fpdata.fpdata(np_x_dim=self.np_x_dim, np_y_dim=self.np_y_dim, debug=self.debug)
                 for path in jsonfp:
                     if self.debug == True:
                         print("In import_json_file. path is:")
@@ -281,7 +282,7 @@ class fpdatamgr:
                         print("Error: unknown svg path command: " + command)
 
             #create a new floorplan and add a path for each wall we've parsed from the svg
-            fp1 = fpdata.fpdata(np_x_dim=self.np_x_dim, np_y_dim=self.np_y_dim)
+            fp1 = fpdata.fpdata(np_x_dim=self.np_x_dim, np_y_dim=self.np_y_dim, debug=self.debug)
             for wall in walls:
                 if self.debug == True:
                     print("adding wall with points " + str(wall[0]) + " " + str(wall[1]) + " " + str(wall[2]) + " " + str(wall[3]))
@@ -304,18 +305,18 @@ class fpdatamgr:
         '''
         Takes a numpy array of 64, 64, 2 and changes it in to a fpdata object then adds it to the samples
         '''
-        fp1 = fpdata.fpdata(np_x_dim=self.np_x_dim, np_y_dim=self.np_y_dim)
+        fp1 = fpdata.fpdata(np_x_dim=self.np_x_dim, np_y_dim=self.np_y_dim, debug=self.debug)
 
         #print("read dim is " + str(self.real_x_dim) + ", np_dim is " + str(self.np_x_dim))
 
-        x_mult = float(self.real_x_dim) / float(self.np_x_dim)
-        y_mult = float(self.real_y_dim) / float(self.np_y_dim)
+        x_mult = float(self.real_x_dim) / float(self.np_x_dim - 1)
+        y_mult = float(self.real_y_dim) / float(self.np_y_dim - 1)
 
-        print("real_x_dim is " + str(self.real_x_dim))
-        print("np_x_dim is " + str(self.np_x_dim))
-        print("xmult is " + str(x_mult))
+        if self.debug:
+            print("real_x_dim is " + str(self.real_x_dim))
+            print("np_x_dim is " + str(self.np_x_dim))
+            print("xmult is " + str(x_mult))
 
-        #print("Multiplier is " + str(x_mult))
 
         #iterate through the first two dimensions of the matrix looking for values big enough to
         #be considered walls
@@ -352,10 +353,10 @@ class fpdatamgr:
                         p2_x = max(min(p2_x, self.np_x_dim), 0)
                         p2_y = max(min(p2_y, self.np_y_dim), 0)
 
-                        p1_x = p1_x * x_mult
-                        p1_y = p1_y * y_mult
-                        p2_x = p2_x * x_mult
-                        p2_y = p2_y * y_mult
+                        p1_x = round(p1_x * x_mult)
+                        p1_y = round(p1_y * y_mult)
+                        p2_x = round(p2_x * x_mult)
+                        p2_y = round(p2_y * y_mult)
 
                     #add the path we've found to the fpdata object
                     fp1.add_path(1, p1_x, p1_y, p2_x, p2_y)
@@ -475,7 +476,7 @@ class fpdatamgr:
 
         for rep in range(reps):
             for mgr_index in range(start_index, end_index):
-                tmp_fp = fpdata.fpdata(np_x_dim=self.np_x_dim, np_y_dim=self.np_y_dim)
+                tmp_fp = fpdata.fpdata(np_x_dim=self.np_x_dim, np_y_dim=self.np_y_dim, debug=self.debug)
                 tmp_fp.copy(self.fplist[mgr_index])
                 if rnd_rescale:
                     tmp_fp.rnd_rescale()
@@ -510,7 +511,7 @@ class fpdatamgr:
 
     def generate_test_set(self, size=100):
 
-        fp1 = fpdata.fpdata(np_x_dim=self.np_x_dim, np_y_dim=self.np_y_dim)
+        fp1 = fpdata.fpdata(np_x_dim=self.np_x_dim, np_y_dim=self.np_y_dim, debug=self.debug)
         fp1.add_path(1, 6.0, 6.0, 6.0, 26.0)
         fp1.add_path(1, 6.0, 26.0, 26.0, 26.0)
         fp1.add_path(1, 26.0, 26.0, 26.0, 6.0)

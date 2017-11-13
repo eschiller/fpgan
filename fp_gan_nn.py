@@ -94,6 +94,9 @@ class fp_gan_nn:
         self.ce_gn = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.raw_gen_logits, labels=tf.ones_like(self.raw_gen_logits)))
         self.train_step_gn = optimizer(learn_rate_gn, beta1=0.5).minimize(self.ce_gn, var_list=[self.gn_h1_bias, self.gn_h2_bias, self.gn_h3_bias, self.w_gn_h1, self.w_gn_h2, self.w_gn_h3])
 
+        self.gn_loss_sum = tf.summary.scalar("gn_loss", self.ce_gn)
+        self.dn_loss_sum = tf.summary.scalar("dn_loss", self.ce_dn)
+        dsum = tf.summary.merge_all()
         #PREP
         #uncomment to see hardware device (gpu) placement
         #self.sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
@@ -101,7 +104,7 @@ class fp_gan_nn:
         self.sess = tf.Session()
         init = tf.global_variables_initializer()
 
-
+        self.writer = tf.summary.FileWriter("/tmp/tensorflow/", graph=self.sess.graph)
         print(self.sess.run(init))
 
         if restore_checkpoint:
@@ -173,7 +176,7 @@ class fp_gan_nn:
 
 
 
-    def train_gn(self, size=100, check_acc=False):
+    def train_gn(self, rep, size=100, check_acc=False):
         '''
         Trains the GN with a batch of the passed size, first generating noise
         to feed the GN, generating floorplans, then feeding those to the dn and
@@ -186,7 +189,8 @@ class fp_gan_nn:
         feed_noise = np.random.uniform(-1, 1, size=[size, 100]).astype(np.float32)
 
         if check_acc:
-            acc = self.sess.run(self.ce_gn, feed_dict={self.noise: feed_noise, self.keep_prob: 1.0})
+            acc, gsumm = self.sess.run([self.ce_gn, self.gn_loss_sum], feed_dict={self.noise: feed_noise, self.keep_prob: 1.0})
+            self.writer.add_summary(gsumm, rep)
             print("gn accuracy: " + str(acc))
         else:
             self.sess.run(self.train_step_gn, feed_dict={self.noise: feed_noise, self.keep_prob: 1.0})
@@ -217,7 +221,8 @@ class fp_gan_nn:
             self.datamgr.export_svg(-1, "./samples/" + "dataset_" + str(rep) + ".svg")
 
         if check_acc:
-            acc, gen_y_sig, gen_y = self.sess.run([self.ce_dn, self.gen_y_sig, self.gen_y], feed_dict={self.real_x: feed_data, self.noise: feed_noise, self.keep_prob: 1.0})
+            acc, gen_y_sig, gen_y, dsumm = self.sess.run([self.ce_dn, self.gen_y_sig, self.gen_y, self.dn_loss_sum], feed_dict={self.real_x: feed_data, self.noise: feed_noise, self.keep_prob: 1.0})
+            self.writer.add_summary(dsumm, rep)
             print("dn accuracy: " + str(acc))
             print("gen x avg: " + str(gen_y_sig.mean()))
         else:
@@ -237,14 +242,14 @@ class fp_gan_nn:
                 self.save_checkpoint(i)
                 print("done with round: " + str(i))
 
-                self.train_gn(self.batch_size, check_acc=True)
+                self.train_gn(i, self.batch_size, check_acc=True)
                 self.train_dn(i, self.batch_size, check_acc=True)
 
             self.train_dn(i, size=self.batch_size)
-            self.train_gn(size=self.batch_size)
+            self.train_gn(i, size=self.batch_size)
 
             #op so nice we'll do it twice
-            self.train_gn(size=self.batch_size)
+            self.train_gn(i, size=self.batch_size)
 
 
 

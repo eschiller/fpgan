@@ -277,3 +277,30 @@ class fpdata:
             path["p1y"] = path["p1y"] * scale
             path["p2x"] = path["p2x"] * scale
             path["p2y"] = path["p2y"] * scale
+
+
+    def rnd_reflect(self):
+        '''
+        Will randomly reflect the data across a y at midpoint
+        :return:
+        '''
+
+        # 50% chance we'll reflect
+        should_reflect = random.random() > .5
+
+        #if we reflect, we'll find the largest y, then put everything over the x axis, than
+        #translate up by largest y to re-home at 0
+        largest_y = 0
+        for path in self.paths:
+            if path["p1y"] > largest_y:
+                largest_y = path["p1y"]
+            if path["p2y"] > largest_y:
+                largest_y = path["p2y"]
+            path["p1y"] = path["p1y"] * -1
+            path["p2y"] = path["p2y"] * -1
+
+
+        #on second pass translate
+        for path in self.paths:
+            path["p1y"] += largest_y
+            path["p2y"] += largest_y

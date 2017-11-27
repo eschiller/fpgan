@@ -21,7 +21,8 @@ class fp_gan_nn:
                  sample_label="test",
                  sample_data=False,
                  debug=False,
-                 restore_checkpoint=None):
+                 restore_checkpoint=None,
+                 ):
 
         self.np_x_dim = np_x_dim
         self.np_y_dim = np_y_dim
@@ -42,7 +43,8 @@ class fp_gan_nn:
         #uncomment to use the "real" dataset from the json file
         self.datamgr.import_json_file("./data/json/datafp.json")
         #self.fp_data = self.datamgr.generate_data_set(self.train_data_size, generations=10, rnd_rescale=True)
-        self.fp_data = self.datamgr.generate_data_set(self.train_data_size)
+        self.fp_data = self.datamgr.generate_data_set(self.train_data_size, generations=10, rnd_reflect=True)
+        #self.fp_data = self.datamgr.generate_data_set(self.train_data_size)
 
         #uncomment to use test floorplan (square with line through it) for entire dataset
         #self.fp_data = self.datamgr.generate_test_set(self.train_data_size)

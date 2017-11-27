@@ -460,7 +460,7 @@ class fpdatamgr:
             f.write("\n")
 
 
-    def to_numpy_array(self, start_index, end_index, reps=1, rnd_rescale=False):
+    def to_numpy_array(self, start_index, end_index, reps=1, rnd_rescale=False, rnd_reflect=False):
         '''
         Creates and returns a numpy array dataset containing floorplans from
         fplist from start_index to end_index
@@ -480,6 +480,8 @@ class fpdatamgr:
                 tmp_fp.copy(self.fplist[mgr_index])
                 if rnd_rescale:
                     tmp_fp.rnd_rescale()
+                if rnd_reflect:
+                    tmp_fp.rnd_reflect()
                 ret_mat[i] = tmp_fp.to_numpy_array()
                 i += 1
 
@@ -487,7 +489,7 @@ class fpdatamgr:
 
 
 
-    def generate_data_set(self, size=100, generations=1, rnd_rescale=False):
+    def generate_data_set(self, size=100, generations=1, rnd_rescale=False, rnd_reflect=False):
         '''
         Creates a data set for feeding to a NN (in numpy format) from the
         available floorplans from the data.

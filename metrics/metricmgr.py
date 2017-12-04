@@ -50,9 +50,10 @@ class metricmgr:
                         walls += 1
                         if (smp_split[0][i, j, k] > .05) and (smp_split[1][i, j, k] > .05):
                             diags += 1
-
-        self.log_dict['orientation'][reps] = float(diags) / float(walls)
-
+        if float(walls) > 0.0:
+            self.log_dict['orientation'][reps] = float(diags) / float(walls)
+        else:
+            self.log_dict['orientation'][reps] = 0.0
 
     def update_all(self, reps, npsamples):
         self.update_density(reps, npsamples)

@@ -1,6 +1,8 @@
 import sys
 sys.path.append("./data")
+sys.path.append("./metrics")
 from fpdatamgr import fpdatamgr
+from metricmgr import metricmgr
 import fpdata
 import tensorflow as tf
 import numpy as np
@@ -31,6 +33,7 @@ class fp_gan_nn:
         self.sample_data = sample_data
         #make sure printing numpy arrays is in full
         np.set_printoptions(threshold=np.nan)
+        self.metmgr = metricmgr()
 
         #initialize some vars
         self.dropout = .75
@@ -270,6 +273,7 @@ class fp_gan_nn:
         fp_samples = self.generate(self.batch_size)
         rescaled_samples = fpdata.np_rescale(fp_samples, snap=False)
         sample_to_out = rescaled_samples[0]
+        self.metmgr.update_all(reps, fp_samples)
 
 
         #uncomment below to get printouts of sample
